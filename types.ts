@@ -1,4 +1,4 @@
-export type View = 'dashboard' | 'map' | 'fares' | 'promotions' | 'support' | 'live' | 'routeOptimization';
+export type View = 'dashboard' | 'map' | 'fares' | 'promotions' | 'support' | 'routeOptimization';
 
 export type DriverStatus = 'online' | 'offline' | 'on_trip';
 

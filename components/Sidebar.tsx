@@ -28,7 +28,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isCollap
     { id: 'fares', label: 'Tarifas', icon: SettingsIcon },
     { id: 'promotions', label: 'Promoções', icon: PromotionIcon },
     { id: 'support', label: 'Chat de Suporte', icon: ChatIcon },
-    { id: 'live', label: 'Assistente ao Vivo', icon: LiveIcon },
   ];
 
   const handleLogout = () => {

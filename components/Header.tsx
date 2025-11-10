@@ -13,7 +13,6 @@ const viewDetails: Record<View, { title: string; subtitle?: string }> = {
     fares: { title: 'Gerenciamento de Tarifas' },
     promotions: { title: 'Promoções' },
     support: { title: 'Assistente de Suporte', subtitle: 'Com tecnologia Gemini' },
-    live: { title: 'Assistente ao Vivo', subtitle: 'Conversa por voz ao vivo com Gemini' },
 };
 
 

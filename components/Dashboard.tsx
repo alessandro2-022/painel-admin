@@ -2,22 +2,61 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Driver, DriverStatus } from '../types';
 import { getDrivers, getDashboardStats } from '../services/apiService';
 
-const StatCard: React.FC<{ title: string; value: string; color: string }> = ({ title, value, color }) => (
+const StatCard: React.FC<{ title: string; value: string; color: string }> = React.memo(({ title, value, color }) => (
   <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md transition-all hover:shadow-lg hover:-translate-y-1 dark:border dark:border-slate-700/50 dark:hover:border-slate-600">
     <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</h3>
     <p className={`text-3xl font-bold mt-2 ${color}`}>{value}</p>
   </div>
-);
+));
 
+// Dados de exemplo para o gráfico. Em uma aplicação real, viriam da API.
 const weeklyRideData = [
-  { day: 'Seg', rides: 0 },
-  { day: 'Ter', rides: 0 },
-  { day: 'Qua', rides: 0 },
-  { day: 'Qui', rides: 0 },
-  { day: 'Sex', rides: 0 },
-  { day: 'Sáb', rides: 0 },
-  { day: 'Dom', rides: 0 },
+  { day: 'Seg', rides: 65 },
+  { day: 'Ter', rides: 59 },
+  { day: 'Qua', rides: 80 },
+  { day: 'Qui', rides: 81 },
+  { day: 'Sex', rides: 56 },
+  { day: 'Sáb', rides: 95 },
+  { day: 'Dom', rides: 70 },
 ];
+
+// Função auxiliar para gerar os caminhos do SVG para o gráfico
+const generateChartPaths = (data: { rides: number }[], width: number, height: number) => {
+    if (data.length === 0) {
+        const flatLine = `M 0,${height} L ${width},${height}`;
+        return { pathD: flatLine, areaPathD: `${flatLine} L ${width},${height} L 0,${height} Z`, maxRides: 100 };
+    }
+
+    const maxRides = Math.max(...data.map(d => d.rides), 100); // Garante uma altura mínima de 100
+    const points = data.map((d, i) => ({
+        x: (i / (data.length - 1)) * width,
+        y: height - (d.rides / maxRides) * height,
+    }));
+
+    const smoothing = 0.2;
+    const controlPoint = (current: {x:number, y:number}, previous: {x:number, y:number}, next: {x:number, y:number}, isEnd?: boolean) => {
+        const p = previous || current;
+        const n = next || current;
+        const o = { x: n.x - p.x, y: n.y - p.y };
+        const angle = Math.atan2(o.y, o.x) + (isEnd ? Math.PI : 0);
+        const length = Math.sqrt(o.x * o.x + o.y * o.y) * smoothing;
+        const x = current.x + Math.cos(angle) * length;
+        const y = current.y + Math.sin(angle) * length;
+        return [x, y];
+    };
+
+    const pathD = points.reduce((acc, point, i, a) => {
+        if (i === 0) return `M ${point.x.toFixed(2)},${point.y.toFixed(2)}`;
+        const [cpsX, cpsY] = controlPoint(a[i - 1], a[i - 2], point);
+        const [cpeX, cpeY] = controlPoint(point, a[i - 1], a[i + 1], true);
+        return `${acc} C ${cpsX.toFixed(2)},${cpsY.toFixed(2)} ${cpeX.toFixed(2)},${cpeY.toFixed(2)} ${point.x.toFixed(2)},${point.y.toFixed(2)}`;
+    }, "");
+    
+    const areaPathD = `${pathD} L ${width},${height + 5} L 0,${height + 5} Z`;
+
+    return { pathD, areaPathD, maxRides };
+};
+
 
 const RideHistoryWidget: React.FC<{ onStatsUpdate: (stats: { completedToday: number }) => void }> = ({ onStatsUpdate }) => {
     type TimeFilter = 'week' | 'month' | 'year';
@@ -119,10 +158,7 @@ const Dashboard: React.FC = () => {
   // Esses valores seriam carregados de uma API
   const registeredCustomers = "0";
 
-  const maxRides = 100; // Valor padrão quando não há dados
-
-  const pathD = 'M 0,200 C 116.67,200 116.67,200 233.33,200 C 350,200 350,200 466.67,200 C 583.33,200 583.33,200 700,200';
-  const areaPathD = `${pathD} L 700,205 L 0,205 Z`;
+  const { pathD, areaPathD, maxRides } = generateChartPaths(weeklyRideData, 700, 200);
 
   const DriverStatusBadge: React.FC<{ status: DriverStatus }> = ({ status }) => {
     const statusInfo = {

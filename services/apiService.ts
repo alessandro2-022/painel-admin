@@ -1,18 +1,51 @@
 import { Driver, Promotion, Ride, RideStatus, DriverProfile } from '../types';
 
+// --- Configuração da API ---
+// Detecta se a aplicação está rodando em um ambiente de desenvolvimento local (ex: localhost).
+// Isso permite alternar entre um endpoint de API local e um relativo para produção.
+const IS_LOCAL_DEVELOPMENT = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
 // O URL base para sua API de backend.
-// Em um ambiente de produção real, isso viria de uma variável de ambiente.
-const API_BASE_URL = '/api'; // Exemplo, ajuste conforme necessário
+const API_BASE_URL = IS_LOCAL_DEVELOPMENT ? 'http://localhost:8080/api' : '/api';
+
+// O URL para o servidor WebSocket.
+const WEBSOCKET_URL = IS_LOCAL_DEVELOPMENT
+    ? 'ws://localhost:8080/ws'
+    : window.location.origin.replace(/^http/, 'ws') + '/ws';
+
 
 // --- Funções de API Genéricas ---
 
 // Função auxiliar para lidar com respostas da API e erros de rede
 async function handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Erro de rede ou resposta não-JSON.' }));
-        throw new Error(errorData.message || `Erro HTTP: ${response.status}`);
+        const errorText = await response.text();
+        let errorMessage = `Erro HTTP: ${response.status}`;
+        if (errorText) {
+            try {
+                // Tenta analisar como JSON para obter uma mensagem de erro estruturada
+                const errorJson = JSON.parse(errorText);
+                errorMessage = errorJson.message || errorText;
+            } catch (e) {
+                // Se não for JSON, o texto bruto é a melhor mensagem de erro
+                errorMessage = errorText;
+            }
+        }
+        throw new Error(errorMessage);
     }
-    return response.json();
+
+    const responseText = await response.text();
+    if (!responseText) {
+        // Lida com respostas de sucesso sem conteúdo (ex: 204 No Content)
+        return {} as T;
+    }
+
+    try {
+        return JSON.parse(responseText);
+    } catch (e) {
+        console.error("Falha ao analisar JSON de uma resposta bem-sucedida:", responseText);
+        throw new Error("A resposta do servidor não está no formato JSON esperado.");
+    }
 }
 
 // --- Funções da API de Motoristas e Painel ---
@@ -81,9 +114,22 @@ export const togglePromotionStatus = (promoId: string): Promise<Promotion> => {
 let socket: WebSocket | null = null;
 let isConnecting = false;
 let reconnectTimeout: number | undefined;
+let reconnectDelay = 1000; // Começa com 1 segundo
+const MAX_RECONNECT_DELAY = 30000; // Atraso máximo de 30 segundos
+
+// Função auxiliar para agendar a reconexão com atraso exponencial
+const scheduleReconnect = () => {
+    if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+    }
+    console.log(`Tentando reconectar o WebSocket em ${(reconnectDelay / 1000).toFixed(1)}s...`);
+    reconnectTimeout = setTimeout(connectWebSocket, reconnectDelay);
+    // Aumenta o atraso para a próxima tentativa
+    reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY);
+};
 
 export function connectWebSocket() {
-    // Limpa qualquer tentativa de reconexão agendada para evitar chamadas duplicadas
+    // Limpa o timeout agendado, já que estamos tentando conectar agora.
     if (reconnectTimeout) {
         clearTimeout(reconnectTimeout);
         reconnectTimeout = undefined;
@@ -96,16 +142,14 @@ export function connectWebSocket() {
     
     isConnecting = true;
 
-    // Constrói a URL do WebSocket de forma segura, substituindo http/https por ws/wss.
-    // Isso garante que uma página segura (https) sempre use uma conexão segura (wss).
-    const wsUrl = window.location.origin.replace(/^http/, 'ws') + '/ws';
-
     try {
-        socket = new WebSocket(wsUrl);
+        socket = new WebSocket(WEBSOCKET_URL);
 
         socket.onopen = () => {
             console.log('Conectado ao servidor WebSocket.');
             isConnecting = false;
+            // Reseta o atraso de reconexão em caso de sucesso
+            reconnectDelay = 1000;
         };
 
         socket.onmessage = (event) => {
@@ -128,21 +172,23 @@ export function connectWebSocket() {
         };
 
         socket.onerror = (event: Event) => {
-            console.error('Ocorreu um erro na conexão WebSocket. O evento onclose fornecerá mais detalhes.');
+            // O evento de erro do WebSocket é genérico. O motivo exato geralmente é
+            // registrado no console do navegador e o evento 'onclose' é acionado em seguida
+            // com um código de status. Este log ajuda a confirmar a URL de destino.
+            console.error(`Ocorreu um erro na conexão WebSocket com ${WEBSOCKET_URL}. Verifique o console para mais detalhes.`);
             isConnecting = false;
         };
 
         socket.onclose = (event: CloseEvent) => {
-            console.log(`Desconectado do servidor WebSocket. Código: ${event.code}, Motivo: '${event.reason || 'Nenhum motivo especificado'}'. Tentando reconectar em 5s...`);
+            console.log(`Desconectado do servidor WebSocket. Código: ${event.code}, Motivo: '${event.reason || 'Nenhum motivo especificado'}.'`);
             socket = null;
             isConnecting = false;
-            reconnectTimeout = setTimeout(connectWebSocket, 5000);
+            scheduleReconnect(); // Usa a nova função para agendar a reconexão
         };
     } catch (error) {
         console.error("Falha ao criar WebSocket:", error);
         isConnecting = false;
-        // Se a construção do WebSocket falhar (ex: erro de segurança), tenta reconectar.
-        reconnectTimeout = setTimeout(connectWebSocket, 5000);
+        scheduleReconnect(); // Usa a nova função para agendar a reconexão
     }
 }
 

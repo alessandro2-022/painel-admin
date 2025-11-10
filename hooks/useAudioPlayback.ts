@@ -45,7 +45,6 @@ export const useAudioPlayback = (sampleRate: number) => {
     const audioContextRef = useRef<AudioContext | null>(null);
     const gainNodeRef = useRef<GainNode | null>(null);
     const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
-    const nextStartTimeRef = useRef<number>(0);
 
     useEffect(() => {
         // Initialize AudioContext
@@ -59,6 +58,15 @@ export const useAudioPlayback = (sampleRate: number) => {
         }
 
         return () => {
+            // Stop all playing sources when the component unmounts
+            sourcesRef.current.forEach(source => {
+                try {
+                    source.stop();
+                } catch (e) {
+                    // Ignore errors if source has already stopped
+                }
+            });
+            sourcesRef.current.clear();
             audioContextRef.current?.close();
         };
     }, [sampleRate]);
@@ -88,48 +96,5 @@ export const useAudioPlayback = (sampleRate: number) => {
         sourcesRef.current.add(source);
     }, [sampleRate]);
 
-    const queueAudio = useCallback(async (base64Audio: string) => {
-        const audioContext = audioContextRef.current;
-        const gainNode = gainNodeRef.current;
-        if (!audioContext || !gainNode || !base64Audio) return;
-
-        if (audioContext.state === 'suspended') {
-            await audioContext.resume();
-        }
-
-        nextStartTimeRef.current = Math.max(nextStartTimeRef.current, audioContext.currentTime);
-        
-        const audioData = decode(base64Audio);
-        const audioBuffer = await decodeAudioData(audioData, audioContext, sampleRate, 1);
-
-        const source = audioContext.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(gainNode);
-        source.addEventListener('ended', () => {
-             sourcesRef.current.delete(source);
-             if (sourcesRef.current.size === 0) {
-                 setIsPlaying(false);
-             }
-        });
-        
-        source.start(nextStartTimeRef.current);
-        nextStartTimeRef.current += audioBuffer.duration;
-        sourcesRef.current.add(source);
-        setIsPlaying(true);
-    }, [sampleRate]);
-
-    const stopAll = useCallback(() => {
-        sourcesRef.current.forEach(source => {
-            try {
-                source.stop();
-            } catch (e) {
-                // Ignore errors if source has already stopped
-            }
-        });
-        sourcesRef.current.clear();
-        nextStartTimeRef.current = 0;
-        setIsPlaying(false);
-    }, []);
-
-    return { isPlaying, playAudio, queueAudio, stopAll };
+    return { isPlaying, playAudio };
 };

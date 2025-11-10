@@ -48,8 +48,6 @@ const App: React.FC = () => {
         return <Promotions />;
       case 'support':
         return <SupportChat />;
-      case 'live':
-        return <LiveAssistant />;
       default:
         return <Dashboard />;
     }

@@ -63,19 +63,3 @@ export const getTextToSpeech = async (text: string): Promise<string | null> => {
         return null;
     }
 };
-
-export const getLiveSession = async (callbacks: any) => {
-    return await ai.live.connect({
-        model: 'gemini-2.5-flash-native-audio-preview-09-2025',
-        callbacks,
-        config: {
-            responseModalities: [Modality.AUDIO],
-            speechConfig: {
-                voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
-            },
-            inputAudioTranscription: {},
-            outputAudioTranscription: {},
-            systemInstruction: 'Você é um agente de suporte da Goly. Fale claramente e ajude o usuário com suas dúvidas sobre a plataforma.'
-        },
-    });
-};

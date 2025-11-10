@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Driver, DriverStatus } from '../types';
 import useGoogleMaps from '../hooks/useGoogleMaps';
 import { useTheme } from '../hooks/useTheme';
@@ -29,11 +29,6 @@ const MapView: React.FC = () => {
   const markersRef = useRef<{[key: number]: any}>({});
   const infoWindowRef = useRef<any | null>(null);
 
-  const driversRef = useRef(drivers);
-  useEffect(() => {
-    driversRef.current = drivers;
-  }, [drivers]);
-
   // Carregamento inicial e inscrição para atualizações
   useEffect(() => {
     const fetchAndSubscribe = async () => {
@@ -47,11 +42,7 @@ const MapView: React.FC = () => {
         setIsLoading(false);
       }
 
-      // Agora, em vez de simular, estamos nos inscrevendo em um ouvinte de eventos
-      // que será acionado pelo nosso serviço WebSocket.
       const unsubscribe = subscribeToDriverLocationUpdates((updatedDriverList) => {
-        // O backend pode enviar a lista completa ou apenas as atualizações.
-        // Assumindo que envia a lista completa para simplicidade.
         setDrivers(updatedDriverList);
       });
 
@@ -61,7 +52,7 @@ const MapView: React.FC = () => {
     fetchAndSubscribe();
   }, []);
 
-  const openInfoWindowForDriver = (driver: Driver) => {
+  const openInfoWindowForDriver = useCallback((driver: Driver) => {
       if (!mapInstanceRef.current || !markersRef.current[driver.id] || !(window as any).google?.maps) return;
       
       const currentMap = mapInstanceRef.current;
@@ -69,6 +60,10 @@ const MapView: React.FC = () => {
       
       if (!infoWindowRef.current) {
           infoWindowRef.current = new (window as any).google.maps.InfoWindow();
+          // Garante que, se o usuário fechar a info window, o estado seja atualizado.
+          infoWindowRef.current.addListener('closeclick', () => {
+            setSelectedDriverId(null);
+          });
       }
       
       const statusColors = {
@@ -91,17 +86,21 @@ const MapView: React.FC = () => {
       `;
       
       infoWindowRef.current.setContent(contentString);
-      infoWindowRef.current.open(currentMap, marker);
-  };
+      // Usa a sintaxe moderna recomendada para AdvancedMarkerElement
+      infoWindowRef.current.open({ 
+        map: currentMap, 
+        anchor: marker,
+        shouldFocus: false 
+      });
+  }, []);
 
   const handleDriverSelect = (driverId: number) => {
-      setSelectedDriverId(driverId);
       const driver = drivers.find(d => d.id === driverId);
       if (driver && mapInstanceRef.current) {
           mapInstanceRef.current.panTo(driver.position);
           mapInstanceRef.current.setZoom(15);
-          openInfoWindowForDriver(driver);
       }
+      setSelectedDriverId(driverId);
   };
   
   // Initialize map when API is loaded
@@ -116,32 +115,50 @@ const MapView: React.FC = () => {
         });
         mapInstanceRef.current = map;
     }
-  }, [isLoaded, loadError, theme]);
+  }, [isLoaded, loadError]);
+
+  // Apply theme changes to the map after initialization
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+        mapInstanceRef.current.setOptions({
+            styles: theme === 'dark' ? darkMapStyle : [],
+        });
+    }
+  }, [theme]);
   
-  // Update markers when drivers move or map is ready
+  // Gerencia o estado da InfoWindow com base no motorista selecionado
+  useEffect(() => {
+    if (selectedDriverId === null) {
+      infoWindowRef.current?.close();
+      return;
+    }
+    
+    const driver = drivers.find(d => d.id === selectedDriverId);
+    if (driver && driver.status !== 'offline') {
+      openInfoWindowForDriver(driver);
+    } else {
+      infoWindowRef.current?.close();
+    }
+  }, [selectedDriverId, drivers, openInfoWindowForDriver]);
+  
+  // Atualiza os marcadores quando os motoristas se movem ou o mapa está pronto
   useEffect(() => {
     if (!isLoaded || loadError || !mapInstanceRef.current || !(window as any).google?.maps) return;
 
     const currentMap = mapInstanceRef.current;
     const activeDrivers = drivers.filter(d => d.status !== 'offline');
     
-    // Update existing markers and add new ones
     activeDrivers.forEach(driver => {
         const position = new (window as any).google.maps.LatLng(driver.position.lat, driver.position.lng);
-        
         const borderColor = driver.status === 'on_trip' ? '#3b82f6' : 'white';
 
         if (markersRef.current[driver.id]) {
-            // Update existing marker
             markersRef.current[driver.id].position = position;
-            // Update border color if status changed
             const content = markersRef.current[driver.id].content as HTMLElement;
             if (content && content.style.borderColor !== borderColor) {
                 content.style.borderColor = borderColor;
             }
-
         } else {
-            // Create new marker
             const img = document.createElement('img');
             img.src = driver.avatarUrl || `https://robohash.org/${driver.name}.png?size=50x50&set=set1`;
             img.style.width = '32px';
@@ -160,18 +177,14 @@ const MapView: React.FC = () => {
             });
 
             img.addEventListener('click', () => {
-              const currentDriverData = driversRef.current.find(d => d.id === driver.id);
-              if (currentDriverData) {
-                  setSelectedDriverId(driver.id);
-                  openInfoWindowForDriver(currentDriverData);
-              }
+              setSelectedDriverId(driver.id);
             });
 
             markersRef.current[driver.id] = marker;
         }
     });
 
-    // Remove markers for drivers who went offline
+    // Remove marcadores de motoristas que ficaram offline
     Object.keys(markersRef.current).forEach(driverIdStr => {
       const driverId = parseInt(driverIdStr, 10);
       if (!activeDrivers.some(d => d.id === driverId)) {
@@ -179,7 +192,6 @@ const MapView: React.FC = () => {
           delete markersRef.current[driverId];
           if (selectedDriverId === driverId) {
             setSelectedDriverId(null);
-            infoWindowRef.current?.close();
           }
       }
     });
@@ -196,7 +208,7 @@ const MapView: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col md:flex-row gap-4">
-        {/* Driver List Panel */}
+        {/* Painel de Lista de Motoristas */}
         <aside className="w-full md:w-1/3 lg:w-1/4 bg-white dark:bg-slate-800 rounded-xl shadow-md flex flex-col dark:border dark:border-slate-700 max-h-[40vh] md:max-h-full">
             <h2 className="text-xl font-semibold p-4 border-b border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100">Motoristas Ativos</h2>
             <ul className="flex-1 overflow-y-auto p-2">
@@ -227,7 +239,7 @@ const MapView: React.FC = () => {
             </ul>
         </aside>
 
-        {/* Map Area */}
+        {/* Área do Mapa */}
         <div className="flex-1 bg-slate-200 dark:bg-slate-800 rounded-xl shadow-md relative overflow-hidden dark:border dark:border-slate-700">
             <div ref={mapRef} className="w-full h-full" />
             

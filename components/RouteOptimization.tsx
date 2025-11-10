@@ -77,7 +77,16 @@ const RouteOptimization: React.FC = () => {
                 });
             }
         }
-    }, [isLoaded, loadError, theme]);
+    }, [isLoaded, loadError]);
+
+    // Apply theme changes to the map after initialization
+    useEffect(() => {
+        if (mapInstanceRef.current) {
+            mapInstanceRef.current.setOptions({
+                styles: theme === 'dark' ? darkMapStyle : [],
+            });
+        }
+    }, [theme]);
 
 
     const handleRemoveStop = (id: number) => {
