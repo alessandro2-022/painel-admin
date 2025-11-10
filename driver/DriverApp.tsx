@@ -115,7 +115,9 @@ const DriverApp: React.FC<DriverAppProps> = ({ onLogout }) => {
                 return <HomeScreen 
                             profile={profile} 
                             isOnline={isOnline}
-                            rideRequest={activeRide?.status === 'request' ? activeRide : null}
+                            // FIX: After the guard condition above, `activeRide` is correctly narrowed to `RideRequest | null`.
+                            // Passing it directly is cleaner and correct.
+                            rideRequest={activeRide}
                             onToggleOnline={handleToggleOnline}
                             onRideResponse={handleRideResponse}
                         />;
@@ -127,7 +129,9 @@ const DriverApp: React.FC<DriverAppProps> = ({ onLogout }) => {
                 return <HomeScreen 
                             profile={profile}
                             isOnline={isOnline}
-                            rideRequest={activeRide?.status === 'request' ? activeRide : null}
+                            // FIX: After the guard condition above, `activeRide` is correctly narrowed to `RideRequest | null`.
+                            // Passing it directly is cleaner and correct.
+                            rideRequest={activeRide}
                             onToggleOnline={handleToggleOnline}
                             onRideResponse={handleRideResponse}
                         />;
