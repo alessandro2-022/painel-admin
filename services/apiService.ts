@@ -1,98 +1,79 @@
-import { Driver, Promotion, User, DriverProfile, Ride, RideStatus } from '../types';
+import { Driver, User, Promotion } from '../types.ts';
+import { getWebsocketService } from './websocketService.ts';
 
 // --- MOCK DATABASE ---
-
-let mockDrivers: Driver[] = [
-  { id: 1, name: 'João Silva', avatarUrl: 'https://i.pravatar.cc/150?u=joao', status: 'online', position: { lat: -23.55, lng: -46.63 } },
-  { id: 2, name: 'Maria Oliveira', avatarUrl: 'https://i.pravatar.cc/150?u=maria', status: 'on_trip', position: { lat: -23.56, lng: -46.65 } },
-  { id: 3, name: 'Carlos Pereira', avatarUrl: 'https://i.pravatar.cc/150?u=carlos', status: 'online', position: { lat: -23.54, lng: -46.64 } },
-  { id: 4, name: 'Ana Costa', avatarUrl: 'https://i.pravatar.cc/150?u=ana', status: 'offline', position: { lat: -23.57, lng: -46.66 } },
+let users: User[] = [
+    { id: 1, name: 'Alice Admin', email: 'alice@goly.com', role: 'admin', avatarUrl: `https://i.pravatar.cc/150?u=user1` },
+    { id: 2, name: 'Bob Operator', email: 'bob@goly.com', role: 'operator', avatarUrl: `https://i.pravatar.cc/150?u=user2` },
 ];
 
-let mockPromotions: Promotion[] = [
-    {
-      id: 'promo1',
-      code: 'GOLYVERAO24',
-      discount: 15,
-      target: 'user',
-      isActive: true,
-      createdAt: new Date('2024-07-20T10:00:00Z').toISOString(),
-      updatedAt: new Date('2024-07-21T11:30:00Z').toISOString(),
-      history: [
-        { date: new Date('2024-07-21T11:30:00Z').toISOString(), change: 'Status alterado para Ativo.' },
-        { date: new Date('2024-07-20T10:00:00Z').toISOString(), change: 'Promoção criada.' },
-      ],
-    },
-    {
-      id: 'promo2',
-      code: 'MOTORISTA10',
-      discount: 10,
-      target: 'driver',
-      isActive: false,
-      createdAt: new Date('2024-07-15T14:00:00Z').toISOString(),
-      updatedAt: new Date('2024-07-22T09:00:00Z').toISOString(),
-      history: [
-        { date: new Date('2024-07-22T09:00:00Z').toISOString(), change: 'Status alterado para Inativo.' },
-        { date: new Date('2024-07-15T14:00:00Z').toISOString(), change: 'Promoção criada.' },
-      ],
-    }
+let drivers: Driver[] = [
+  { id: 3, name: 'Carlos Motorista', avatarUrl: `https://i.pravatar.cc/150?u=driver3`, status: 'online', position: { lat: -23.55, lng: -46.63 }, registeredAt: '2023-01-15T10:00:00Z' },
+  { id: 4, name: 'Daniela Silva', avatarUrl: `https://i.pravatar.cc/150?u=driver4`, status: 'on_trip', position: { lat: -23.56, lng: -46.65 }, registeredAt: '2023-02-20T11:30:00Z' },
+  { id: 5, name: 'Eduardo Costa', avatarUrl: `https://i.pravatar.cc/150?u=driver5`, status: 'offline', position: { lat: -23.54, lng: -46.64 }, registeredAt: '2023-03-10T09:00:00Z' },
+  { id: 6, name: 'Fernanda Lima', avatarUrl: `https://i.pravatar.cc/150?u=driver6`, status: 'online', position: { lat: -23.57, lng: -46.62 }, registeredAt: '2023-04-05T14:00:00Z' },
 ];
 
-let mockUsers: User[] = [
-    { id: 1, name: 'Admin Goly', email: 'admin@goly.com', role: 'admin', avatarUrl: 'https://i.pravatar.cc/150?u=admin@goly.com' },
-    { id: 2, name: 'Operador Goly', email: 'op@goly.com', role: 'operator', avatarUrl: 'https://i.pravatar.cc/150?u=op@goly.com' },
+let promotions: Promotion[] = [
+    { id: 'promo1', code: 'GOLYVERAO24', discount: 15, target: 'user', isActive: true, createdAt: '2024-01-01T12:00:00Z', updatedAt: '2024-01-01T12:00:00Z', history: [{date: '2024-01-01T12:00:00Z', change: 'Promoção criada.'}] },
+    { id: 'promo2', code: 'MOTORISTASHOW', discount: 10, target: 'driver', isActive: false, createdAt: '2024-02-15T10:00:00Z', updatedAt: '2024-03-01T10:00:00Z', history: [{date: '2024-02-15T10:00:00Z', change: 'Promoção criada.'}, {date: '2024-03-01T10:00:00Z', change: 'Promoção desativada.'}] },
 ];
 
-const mockDriverProfiles: Record<number, DriverProfile> = {
-    3: { id: 3, name: 'Carlos Pereira', avatarUrl: 'https://i.pravatar.cc/150?u=carlos', vehicle: { model: 'Honda Civic', licensePlate: 'XYZ-1234' }, rating: 4.9 }
-};
-
-let mockRides: Ride[] = [
-    { id: 'ride1', passengerName: 'Fernanda', passengerAvatarUrl: '', pickupLocation: 'Av. Paulista, 1000', dropoffLocation: 'R. Augusta, 500', fare: 25.50, etaMinutes: 5, status: 'completed', createdAt: new Date().toISOString(), completedAt: new Date().toISOString() },
-];
-
-// --- API SIMULATION ---
-
-const simulateApiCall = <T>(data: T, delay = 500): Promise<T> =>
-  new Promise(resolve => setTimeout(() => resolve(JSON.parse(JSON.stringify(data))), delay));
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // --- API FUNCTIONS ---
 
-export const getDrivers = (): Promise<Driver[]> => simulateApiCall(mockDrivers);
+// Dashboard
+export const getDashboardStats = async (filter: 'week' | 'month' | 'year') => {
+    await sleep(500);
+    return {
+        totalRides: filter === 'week' ? 120 : (filter === 'month' ? 480 : 5000),
+        totalRevenue: filter === 'week' ? 3000.50 : (filter === 'month' ? 12000.25 : 150000.75),
+        completedToday: 15,
+    };
+};
 
-export const getDashboardStats = (timeFilter: 'week' | 'month' | 'year'): Promise<{ totalRides: number; totalRevenue: number; completedToday: number; }> => {
-    // Mock data based on filter
-    const multipliers = { week: 1, month: 4, year: 52 };
-    return simulateApiCall({
-        totalRides: 425 * multipliers[timeFilter],
-        totalRevenue: 8500 * multipliers[timeFilter],
-        completedToday: 55,
-    });
+// Drivers & Map
+export const getDrivers = async (): Promise<Driver[]> => {
+    await sleep(500);
+    return JSON.parse(JSON.stringify(drivers)); // Deep copy to avoid mutation
 };
 
 export const subscribeToDriverLocationUpdates = (callback: (updatedDrivers: Driver[]) => void): (() => void) => {
+    const websocketService = getWebsocketService(); // Get singleton instance
     const interval = setInterval(() => {
-        mockDrivers = mockDrivers.map(driver => {
+        drivers.forEach(driver => {
             if (driver.status !== 'offline') {
-                return {
-                    ...driver,
-                    position: {
-                        lat: driver.position.lat + (Math.random() - 0.5) * 0.001,
-                        lng: driver.position.lng + (Math.random() - 0.5) * 0.001,
-                    }
-                };
+                driver.position.lat += (Math.random() - 0.5) * 0.001;
+                driver.position.lng += (Math.random() - 0.5) * 0.001;
             }
-            return driver;
         });
-        callback(mockDrivers);
-    }, 2000); // Update every 2 seconds
+        websocketService.emit('driverLocationUpdate', drivers);
+    }, 3000);
 
-    return () => clearInterval(interval); // Unsubscribe function
+    const handleUpdate = (data: any) => {
+        // Assuming the websocket message for this is a direct payload of drivers
+         callback(data);
+    };
+    websocketService.on('driverLocationUpdate', handleUpdate);
+
+    // Initial emit for immediate data
+    callback(drivers);
+
+    return () => {
+        clearInterval(interval);
+        websocketService.off('driverLocationUpdate', handleUpdate);
+    };
 };
 
-export const getPromotions = (): Promise<Promotion[]> => simulateApiCall(mockPromotions);
+// Promotions
+export const getPromotions = async (): Promise<Promotion[]> => {
+    await sleep(700);
+    return JSON.parse(JSON.stringify(promotions));
+};
 
-export const createPromotion = (data: Omit<Promotion, 'id' | 'isActive' | 'createdAt' | 'updatedAt' | 'history'>): Promise<Promotion> => {
+export const createPromotion = async (data: Omit<Promotion, 'id' | 'isActive' | 'createdAt' | 'updatedAt' | 'history'>): Promise<Promotion> => {
+    await sleep(500);
     const newPromo: Promotion = {
         ...data,
         id: `promo${Date.now()}`,
@@ -101,96 +82,49 @@ export const createPromotion = (data: Omit<Promotion, 'id' | 'isActive' | 'creat
         updatedAt: new Date().toISOString(),
         history: [{ date: new Date().toISOString(), change: 'Promoção criada.' }],
     };
-    mockPromotions.push(newPromo);
-    return simulateApiCall(newPromo);
+    promotions.push(newPromo);
+    return newPromo;
 };
 
-export const updatePromotion = (id: string, data: Partial<Omit<Promotion, 'id'>>): Promise<Promotion> => {
-    const promoIndex = mockPromotions.findIndex(p => p.id === id);
-    if (promoIndex > -1) {
-        mockPromotions[promoIndex] = { ...mockPromotions[promoIndex], ...data, updatedAt: new Date().toISOString() };
-        mockPromotions[promoIndex].history.unshift({ date: new Date().toISOString(), change: 'Detalhes da promoção atualizados.' });
-        return simulateApiCall(mockPromotions[promoIndex]);
-    }
-    return Promise.reject('Promotion not found');
+export const updatePromotion = async (id: string, data: Partial<Omit<Promotion, 'id'>>): Promise<Promotion> => {
+    await sleep(500);
+    const promo = promotions.find(p => p.id === id);
+    if (!promo) throw new Error('Promotion not found');
+    Object.assign(promo, data);
+    promo.updatedAt = new Date().toISOString();
+    promo.history.push({ date: new Date().toISOString(), change: `Detalhes da promoção atualizados.` });
+    return promo;
 };
 
-export const togglePromotionStatus = (id: string): Promise<Promotion> => {
-    const promoIndex = mockPromotions.findIndex(p => p.id === id);
-    if (promoIndex > -1) {
-        const promo = mockPromotions[promoIndex];
-        promo.isActive = !promo.isActive;
-        promo.updatedAt = new Date().toISOString();
-        promo.history.unshift({ date: promo.updatedAt, change: `Status alterado para ${promo.isActive ? 'Ativo' : 'Inativo'}.` });
-        return simulateApiCall(promo);
-    }
-    return Promise.reject('Promotion not found');
+export const togglePromotionStatus = async (id: string): Promise<Promotion> => {
+    await sleep(300);
+    const promo = promotions.find(p => p.id === id);
+    if (!promo) throw new Error('Promotion not found');
+    promo.isActive = !promo.isActive;
+    promo.updatedAt = new Date().toISOString();
+    promo.history.push({ date: new Date().toISOString(), change: `Status alterado para ${promo.isActive ? 'ativo' : 'inativo'}.` });
+    return promo;
 };
 
-export const getDriverProfile = (driverId: number): Promise<DriverProfile> => {
-    const profile = mockDriverProfiles[driverId];
-    if (profile) return simulateApiCall(profile);
-    return Promise.reject('Profile not found');
+
+// Users
+export const getUsers = async (): Promise<User[]> => {
+    await sleep(600);
+    return JSON.parse(JSON.stringify(users));
 };
 
-export const setDriverOnlineStatus = (driverId: number, isOnline: boolean): Promise<{ success: true }> => {
-    const driver = mockDrivers.find(d => d.id === driverId);
-    if (driver) {
-        driver.status = isOnline ? 'online' : 'offline';
-    }
-    return simulateApiCall({ success: true });
+export const createUser = async (data: Omit<User, 'id' | 'avatarUrl'>): Promise<User> => {
+    await sleep(500);
+    const newUser: User = {
+        ...data,
+        id: Math.max(...users.map(u => u.id), 0) + 1,
+        avatarUrl: `https://i.pravatar.cc/150?u=user${Date.now()}`,
+    };
+    users.push(newUser);
+    return newUser;
 };
 
-// Mock WebSocket for ride requests
-export const listenForRideRequests = (driverId: number, callback: (ride: Ride) => void): (() => void) => {
-    const interval = setInterval(() => {
-        // Simulate a new ride request for this driver
-        const newRide: Ride = {
-            id: `ride_${Date.now()}`,
-            passengerName: 'Ana Beatriz',
-            passengerAvatarUrl: 'https://i.pravatar.cc/150?u=anabeatriz',
-            pickupLocation: 'Shopping Eldorado',
-            dropoffLocation: 'Parque Ibirapuera',
-            fare: 32.80,
-            etaMinutes: 6,
-            status: 'request',
-            createdAt: new Date().toISOString(),
-        };
-        console.log(`Simulating ride request for driver ${driverId}`);
-        callback(newRide);
-    }, 20000); // New ride request every 20 seconds
-    
-    return () => clearInterval(interval);
-};
-
-export const updateRideStatus = (rideId: string, newStatus: RideStatus): Promise<Ride> => {
-     const ride = mockRides.find(r => r.id === rideId);
-     if(ride) {
-         ride.status = newStatus;
-         if(newStatus === 'completed') ride.completedAt = new Date().toISOString();
-         return simulateApiCall(ride);
-     }
-     // If it's a new ride, add it to the list
-     const newRideData = {
-        id: rideId,
-        passengerName: 'Ana Beatriz',
-        passengerAvatarUrl: 'https://i.pravatar.cc/150?u=anabeatriz',
-        pickupLocation: 'Shopping Eldorado',
-        dropoffLocation: 'Parque Ibirapuera',
-        fare: 32.80,
-        etaMinutes: 6,
-        status: newStatus,
-        createdAt: new Date().toISOString(),
-     };
-     mockRides.push(newRideData);
-     return simulateApiCall(newRideData);
-};
-
-export const getDriverEarnings = (driverId: number): Promise<{ recentRides: Ride[], totalToday: number }> => {
-    const completedRides = mockRides.filter(r => r.status === 'completed');
-    const total = completedRides.reduce((sum, ride) => sum + ride.fare, 0);
-    return simulateApiCall({
-        recentRides: completedRides,
-        totalToday: total,
-    });
+export const deleteUser = async (id: number): Promise<void> => {
+    await sleep(500);
+    users = users.filter(u => u.id !== id);
 };

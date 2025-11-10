@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -6,14 +5,18 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Goly Control Panel</title>
+    <!-- Icons for Push Notifications & PWA -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/goly-logo-192.png">
+    <link rel="apple-touch-icon" href="/goly-logo-192.png">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      // Prevents FOUC (Flash of Unstyled Content)
-      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark')
-      } else {
-        document.documentElement.classList.remove('dark')
-      }
+      // REMOVIDO: Prevents FOUC (Flash of Unstyled Content)
+      // REMOVIDO: if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      // REMOVIDO:   document.documentElement.classList.add('dark')
+      // REMOVIDO: } else {
+      // REMOVIDO:   document.documentElement.classList.remove('dark')
+      // REMOVIDO: }
     </script>
     <style>
       /* Custom scrollbar for a more modern look */
@@ -31,7 +34,7 @@
       ::-webkit-scrollbar-thumb:hover {
         background: #475569;
       }
-      html.dark ::-webkit-scrollbar-track {
+      /* REMOVIDO: html.dark ::-webkit-scrollbar-track {
         background: #1e293b;
       }
       html.dark ::-webkit-scrollbar-thumb {
@@ -39,7 +42,7 @@
       }
       html.dark ::-webkit-scrollbar-thumb:hover {
         background: #64748b;
-      }
+      } */
     </style>
   <script type="importmap">
 {
@@ -52,7 +55,7 @@
 }
 </script>
 </head>
-  <body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200">
+  <body class="bg-white text-slate-900">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

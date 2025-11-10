@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Driver, DriverStatus } from '../types';
-import useGoogleMaps from '../hooks/useGoogleMaps';
-import { useTheme } from '../hooks/useTheme';
-import darkMapStyle from '../styles/darkMapStyle';
-import MapErrorOverlay from './MapErrorOverlay';
-import { getDrivers, subscribeToDriverLocationUpdates } from '../services/apiService';
+import { Driver, DriverStatus } from '../types.ts';
+import useGoogleMaps from '../hooks/useGoogleMaps.ts';
+// REMOVIDO: import { useTheme } from '../hooks/useTheme.tsx';
+// REMOVIDO: import darkMapStyle from '../styles/darkMapStyle.ts';
+import MapErrorOverlay from './MapErrorOverlay.tsx';
+import { getDrivers, subscribeToDriverLocationUpdates } from '../services/apiService.ts';
 
 const MAP_CENTER = { lat: -23.555, lng: -46.64 };
 
 const DriverStatusIndicator: React.FC<{ status: DriverStatus }> = ({ status }) => {
     const statusInfo = {
-      online: { text: 'Online', color: 'text-green-600 dark:text-green-400' },
-      on_trip: { text: 'Em Viagem', color: 'text-blue-600 dark:text-blue-400' },
-      offline: { text: 'Offline', color: 'text-slate-500 dark:text-slate-400' },
+      online: { text: 'Online', color: 'text-green-600' },
+      on_trip: { text: 'Em Viagem', color: 'text-blue-600' },
+      offline: { text: 'Offline', color: 'text-slate-500' },
     };
     return <p className={`text-xs font-medium ${statusInfo[status].color}`}>{statusInfo[status].text}</p>;
 };
@@ -20,9 +20,10 @@ const DriverStatusIndicator: React.FC<{ status: DriverStatus }> = ({ status }) =
 const MapView: React.FC = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
   const { isLoaded, loadError } = useGoogleMaps();
-  const [theme] = useTheme();
+  // REMOVIDO: const [theme] = useTheme();
   
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any | null>(null);
@@ -33,11 +34,13 @@ const MapView: React.FC = () => {
   useEffect(() => {
     const fetchAndSubscribe = async () => {
       setIsLoading(true);
+      setError(null);
       try {
         const initialDrivers = await getDrivers();
         setDrivers(initialDrivers);
       } catch (error) {
         console.error("Failed to fetch initial drivers", error);
+        setError("Não foi possível carregar os motoristas.");
       } finally {
         setIsLoading(false);
       }
@@ -79,9 +82,9 @@ const MapView: React.FC = () => {
 
       const contentString = `
         <div class="p-1 font-sans">
-          <h3 class="font-bold text-md text-slate-800">${driver.name}</h3>
-          <p class="text-sm text-slate-600">Status: <span class="font-semibold ${statusColors[driver.status]}">${statusText[driver.status]}</span></p>
-          <p class="text-xs text-slate-400 mt-1">${driver.position.lat.toFixed(5)}, ${driver.position.lng.toFixed(5)}</p>
+          <h3 class="font-bold text-md text-slate-900">${driver.name}</h3>
+          <p class="text-sm text-slate-700">Status: <span class="font-semibold ${statusColors[driver.status]}">${statusText[driver.status]}</span></p>
+          <p class="text-xs text-slate-500 mt-1">${driver.position.lat.toFixed(5)}, ${driver.position.lng.toFixed(5)}</p>
         </div>
       `;
       
@@ -113,18 +116,18 @@ const MapView: React.FC = () => {
                 zoom: 13,
                 disableDefaultUI: true,
                 mapId: 'DEMO_MAP_ID',
-                styles: theme === 'dark' ? darkMapStyle : [],
+                styles: [], // Sempre usar estilo padrão (claro)
             });
             mapInstanceRef.current = map;
         }
     } 
-    // Se o mapa já existe, apenas atualiza o estilo do tema.
-    else if (mapInstanceRef.current) {
-        mapInstanceRef.current.setOptions({
-            styles: theme === 'dark' ? darkMapStyle : [],
-        });
-    }
-  }, [isLoaded, loadError, theme]); // A dependência do 'theme' garante que o mapa reaja às mudanças de tema.
+    // Se o mapa já existe, não há necessidade de atualizar estilos de tema, pois o dark mode foi removido.
+    // REMOVIDO: else if (mapInstanceRef.current) {
+    // REMOVIDO:     mapInstanceRef.current.setOptions({
+    // REMOVIDO:         styles: theme === 'dark' ? darkMapStyle : [],
+    // REMOVIDO:     });
+    // REMOVIDO: }
+  }, [isLoaded, loadError]); // Removida a dependência do 'theme'.
 
   // Gerencia o estado da InfoWindow com base no motorista selecionado
   useEffect(() => {
@@ -205,64 +208,71 @@ const MapView: React.FC = () => {
   const handleZoomOut = () => {
     mapInstanceRef.current?.setZoom(mapInstanceRef.current.getZoom()! - 1);
   };
+  
+  const renderDriverList = () => {
+      if (isLoading) {
+          return <li className="p-4 text-center text-slate-500">Carregando...</li>;
+      }
+      if (error) {
+          return <li className="p-4 text-center text-red-500">{error}</li>;
+      }
+      if (drivers.filter(d => d.status !== 'offline').length > 0) {
+          return drivers.filter(d => d.status !== 'offline').map(driver => (
+              <li key={driver.id}>
+                  <button
+                      onClick={() => handleDriverSelect(driver.id)}
+                      className={`w-full flex items-center p-3 text-left rounded-lg transition-colors duration-150 ${
+                          selectedDriverId === driver.id 
+                          ? 'bg-blue-100'
+                          : 'hover:bg-slate-100'
+                      }`}
+                  >
+                      <img src={driver.avatarUrl || `https://robohash.org/${driver.name}.png?size=50x50`} alt={driver.name} className="w-10 h-10 rounded-full mr-3 border-2 border-slate-200" />
+                      <div>
+                          <p className="font-semibold text-slate-900">{driver.name}</p>
+                          <DriverStatusIndicator status={driver.status} />
+                      </div>
+                  </button>
+              </li>
+          ));
+      }
+      return <li className="p-4 text-center text-slate-500">Nenhum motorista ativo.</li>;
+  }
 
   return (
     <div className="h-full flex flex-col md:flex-row gap-4">
         {/* Painel de Lista de Motoristas */}
-        <aside className="w-full md:w-1/3 lg:w-1/4 bg-white dark:bg-slate-800 rounded-xl shadow-md flex flex-col dark:border dark:border-slate-700 max-h-[40vh] md:max-h-full">
-            <h2 className="text-xl font-semibold p-4 border-b border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100">Motoristas Ativos</h2>
+        <aside className="w-full md:w-1/3 lg:w-1/4 bg-white rounded-xl shadow-md flex flex-col border border-slate-200 max-h-[40vh] md:max-h-full">
+            <h2 className="text-xl font-semibold p-4 border-b border-slate-200 text-slate-900">Motoristas Ativos</h2>
             <ul className="flex-1 overflow-y-auto p-2">
-                {isLoading ? (
-                    <li className="p-4 text-center text-slate-500 dark:text-slate-400">Carregando...</li>
-                ) : drivers.filter(d => d.status !== 'offline').length > 0 ? (
-                    drivers.filter(d => d.status !== 'offline').map(driver => (
-                        <li key={driver.id}>
-                            <button
-                                onClick={() => handleDriverSelect(driver.id)}
-                                className={`w-full flex items-center p-3 text-left rounded-lg transition-colors duration-150 ${
-                                    selectedDriverId === driver.id 
-                                    ? 'bg-blue-100 dark:bg-slate-700'
-                                    : 'hover:bg-slate-100 dark:hover:bg-slate-700/50'
-                                }`}
-                            >
-                                <img src={driver.avatarUrl || `https://robohash.org/${driver.name}.png?size=50x50`} alt={driver.name} className="w-10 h-10 rounded-full mr-3 border-2 border-slate-200 dark:border-slate-600" />
-                                <div>
-                                    <p className="font-semibold text-slate-700 dark:text-slate-200">{driver.name}</p>
-                                    <DriverStatusIndicator status={driver.status} />
-                                </div>
-                            </button>
-                        </li>
-                    ))
-                ) : (
-                    <li className="p-4 text-center text-slate-500 dark:text-slate-400">Nenhum motorista ativo.</li>
-                )}
+                {renderDriverList()}
             </ul>
         </aside>
 
         {/* Área do Mapa */}
-        <div className="flex-1 bg-slate-200 dark:bg-slate-800 rounded-xl shadow-md relative overflow-hidden dark:border dark:border-slate-700">
+        <div className="flex-1 bg-white rounded-xl shadow-md relative overflow-hidden border border-slate-200">
             <div ref={mapRef} className="w-full h-full" />
             
-            {!isLoaded && !loadError && <div className="absolute inset-0 flex items-center justify-center bg-slate-200 dark:bg-slate-800"><p>Carregando Mapa...</p></div>}
+            {!isLoaded && !loadError && <div className="absolute inset-0 flex items-center justify-center bg-white"><p className="text-slate-900">Carregando Mapa...</p></div>}
             {loadError && <MapErrorOverlay message={loadError.message} />}
 
-            <div className="absolute top-4 right-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-4 rounded-lg shadow-lg text-sm space-y-2">
-                <h3 className="font-bold">Legenda</h3>
-                <div className="flex items-center space-x-2">
-                    <div className="h-5 w-5 rounded-full flex items-center justify-center border-2 border-white dark:border-slate-800 overflow-hidden bg-slate-300 dark:bg-slate-600" />
+            <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-sm p-4 rounded-lg shadow-lg text-sm space-y-2">
+                <h3 className="font-bold text-slate-900">Legenda</h3>
+                <div className="flex items-center space-x-2 text-slate-700">
+                    <div className="h-5 w-5 rounded-full flex items-center justify-center border-2 border-white overflow-hidden bg-slate-300" />
                     <span>Online</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                    <div className="h-5 w-5 rounded-full flex items-center justify-center border-2 border-blue-500 dark:border-blue-400 overflow-hidden bg-slate-300 dark:bg-slate-600" />
+                <div className="flex items-center space-x-2 text-slate-700">
+                    <div className="h-5 w-5 rounded-full flex items-center justify-center border-2 border-blue-500 overflow-hidden bg-slate-300" />
                     <span>Em Viagem</span>
                 </div>
             </div>
 
             <div className="absolute bottom-4 right-4 flex flex-col space-y-2">
-                <button onClick={handleZoomIn} aria-label="Aproximar" className="w-10 h-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-md shadow-lg flex items-center justify-center text-slate-800 dark:text-slate-200 font-bold text-2xl hover:bg-white dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-[#0057b8]">
+                <button onClick={handleZoomIn} aria-label="Aproximar" className="w-10 h-10 bg-white/80 backdrop-blur-sm rounded-md shadow-lg flex items-center justify-center text-slate-900 font-bold text-2xl hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#0057b8]">
                     +
                 </button>
-                <button onClick={handleZoomOut} aria-label="Afastar" className="w-10 h-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-md shadow-lg flex items-center justify-center text-slate-800 dark:text-slate-200 font-bold text-2xl hover:bg-white dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-[#0057b8]">
+                <button onClick={handleZoomOut} aria-label="Afastar" className="w-10 h-10 bg-white/80 backdrop-blur-sm rounded-md shadow-lg flex items-center justify-center text-slate-900 font-bold text-2xl hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#0057b8]">
                     -
                 </button>
             </div>

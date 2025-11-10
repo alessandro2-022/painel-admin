@@ -1,7 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
-import { ThemeProvider } from './hooks/useTheme';
+// FIX: Corrected file extension for App import.
+import App from './App.tsx';
+// REMOVIDO: import { ThemeProvider } from './hooks/useTheme.tsx';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -11,8 +12,8 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <ThemeProvider>
+    {/* REMOVIDO: <ThemeProvider> */}
       <App />
-    </ThemeProvider>
+    {/* REMOVIDO: </ThemeProvider> */}
   </React.StrictMode>
 );

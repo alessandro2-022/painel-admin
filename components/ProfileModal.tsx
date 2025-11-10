@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User } from '../types';
-import Modal from './Modal';
+import { User } from '../types.ts';
+import Modal from './Modal.tsx';
 
 interface ProfileModalProps {
   user: User;
@@ -32,11 +32,11 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSave }) =>
     <Modal title={isEditing ? 'Editar Perfil' : 'Meu Perfil'} onClose={onClose}>
       <form onSubmit={handleSaveClick}>
         <div className="flex flex-col items-center text-center">
-            <img src={user.avatarUrl} alt="Avatar" className="w-24 h-24 rounded-full mb-4 border-4 border-slate-200 dark:border-slate-600 shadow-md" />
+            <img src={user.avatarUrl} alt="Avatar" className="w-24 h-24 rounded-full mb-4 border-4 border-slate-200 shadow-md" />
         </div>
         <div className="space-y-4 mt-4">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-slate-600 dark:text-slate-300">Nome</label>
+            <label htmlFor="name" className="block text-sm font-medium text-slate-600">Nome</label>
             <input
               type="text"
               id="name"
@@ -44,11 +44,11 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSave }) =>
               value={formData.name}
               onChange={handleInputChange}
               disabled={!isEditing}
-              className="mt-1 block w-full p-3 border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:ring-[#0057b8] focus:border-[#0057b8] dark:bg-slate-700 dark:text-slate-200 disabled:bg-slate-100 dark:disabled:bg-slate-700/50 disabled:cursor-not-allowed"
+              className="mt-1 block w-full p-3 border-slate-300 rounded-md shadow-sm focus:ring-[#0057b8] focus:border-[#0057b8] disabled:bg-slate-50 disabled:cursor-not-allowed text-slate-900"
             />
           </div>
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-slate-600 dark:text-slate-300">Email</label>
+            <label htmlFor="email" className="block text-sm font-medium text-slate-600">Email</label>
             <input
               type="email"
               id="email"
@@ -56,12 +56,12 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSave }) =>
               value={formData.email}
               onChange={handleInputChange}
               disabled={!isEditing}
-              className="mt-1 block w-full p-3 border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:ring-[#0057b8] focus:border-[#0057b8] dark:bg-slate-700 dark:text-slate-200 disabled:bg-slate-100 dark:disabled:bg-slate-700/50 disabled:cursor-not-allowed"
+              className="mt-1 block w-full p-3 border-slate-300 rounded-md shadow-sm focus:ring-[#0057b8] focus:border-[#0057b8] disabled:bg-slate-50 disabled:cursor-not-allowed text-slate-900"
             />
           </div>
            <div>
-            <label className="block text-sm font-medium text-slate-600 dark:text-slate-300">Função</label>
-            <p className="mt-1 block w-full p-3 bg-slate-100 dark:bg-slate-700/50 rounded-md capitalize text-slate-500 dark:text-slate-400">{user.role}</p>
+            <label className="block text-sm font-medium text-slate-600">Função</label>
+            <p className="mt-1 block w-full p-3 bg-slate-50 rounded-md capitalize text-slate-700">{user.role}</p>
           </div>
         </div>
         <div className="mt-6 flex justify-end gap-3">
@@ -73,7 +73,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSave }) =>
                     setIsEditing(false);
                     setFormData({ name: user.name, email: user.email }); // Reseta alterações
                 }}
-                className="px-4 py-2 bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 font-semibold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors"
+                className="px-4 py-2 bg-slate-200 text-slate-800 font-semibold rounded-lg hover:bg-slate-300 transition-colors"
               >
                 Cancelar
               </button>

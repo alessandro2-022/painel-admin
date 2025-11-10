@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { getChatbotResponse, getGroundedResponse, getTextToSpeech } from '../services/geminiService';
-import { ChatMessage, GroundingSource } from '../types';
-import { useAudioPlayback } from '../hooks/useAudioPlayback';
+import { getChatbotResponse, getGroundedResponse, getTextToSpeech } from '../services/geminiService.ts';
+import { ChatMessage, GroundingSource } from '../types.ts';
+import { useAudioPlayback } from '../hooks/useAudioPlayback.ts';
 
 const SupportChat: React.FC = () => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -91,16 +91,16 @@ const SupportChat: React.FC = () => {
     };
 
     return (
-        <div className="h-full flex flex-col bg-white dark:bg-slate-800 rounded-xl shadow-md dark:border dark:border-slate-700">
-            {error && <div className="p-2 bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300 text-center text-sm">{error}</div>}
+        <div className="h-full flex flex-col bg-white rounded-xl shadow-md border border-slate-200">
+            {error && <div className="p-2 bg-red-100 text-red-700 text-center text-sm">{error}</div>}
             <div className="flex-1 p-4 overflow-y-auto space-y-4">
                 {messages.map((msg) => (
                     <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-lg p-3 rounded-2xl ${msg.role === 'user' ? 'bg-[#0057b8] text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200'}`}>
+                        <div className={`max-w-lg p-3 rounded-2xl ${msg.role === 'user' ? 'bg-[#0057b8] text-white' : 'bg-slate-100 text-slate-900'}`}>
                            <p className="whitespace-pre-wrap">{msg.text}</p>
                            {msg.role === 'model' && (
                                 <div className="mt-2 flex items-center">
-                                    <button onClick={() => handleSpeak(msg.text)} disabled={isPlaying} className="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 disabled:opacity-50">
+                                    <button onClick={() => handleSpeak(msg.text)} disabled={isPlaying} className="text-slate-500 hover:text-slate-900 disabled:opacity-50">
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
                                         </svg>
@@ -108,12 +108,12 @@ const SupportChat: React.FC = () => {
                                 </div>
                            )}
                             {msg.sources && (
-                                <div className="mt-3 border-t dark:border-slate-600 pt-2">
+                                <div className="mt-3 border-t border-slate-200 pt-2">
                                     <h4 className="text-xs font-semibold mb-1">Fontes:</h4>
                                     <ul className="space-y-1">
                                         {msg.sources.map((source, index) => (
                                             <li key={index}>
-                                                <a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                                                <a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
                                                     {source.title}
                                                 </a>
                                             </li>
@@ -126,23 +126,23 @@ const SupportChat: React.FC = () => {
                 ))}
                 {isLoading && (
                      <div className="flex justify-start">
-                        <div className="max-w-lg p-3 rounded-2xl bg-slate-200 dark:bg-slate-700 text-slate-800 flex items-center space-x-2">
-                           <div className="w-2 h-2 bg-slate-500 dark:bg-slate-400 rounded-full animate-pulse delay-75"></div>
-                           <div className="w-2 h-2 bg-slate-500 dark:bg-slate-400 rounded-full animate-pulse delay-150"></div>
-                           <div className="w-2 h-2 bg-slate-500 dark:bg-slate-400 rounded-full animate-pulse delay-300"></div>
+                        <div className="max-w-lg p-3 rounded-2xl bg-slate-100 text-slate-900 flex items-center space-x-2">
+                           <div className="w-2 h-2 bg-slate-500 rounded-full animate-pulse delay-75"></div>
+                           <div className="w-2 h-2 bg-slate-500 rounded-full animate-pulse delay-150"></div>
+                           <div className="w-2 h-2 bg-slate-500 rounded-full animate-pulse delay-300"></div>
                         </div>
                     </div>
                 )}
                 <div ref={messagesEndRef} />
             </div>
-            <div className="p-4 border-t dark:border-slate-700">
+            <div className="p-4 border-t border-slate-200">
                 <div className="flex items-center space-x-2">
                     <input
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                        className="flex-1 p-3 border-slate-300 dark:border-slate-600 rounded-full focus:ring-[#0057b8] focus:border-[#0057b8] dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400"
+                        className="flex-1 p-3 border-slate-300 rounded-full focus:ring-[#0057b8] focus:border-[#0057b8] text-slate-900"
                         placeholder="Faça uma pergunta..."
                     />
                     <button onClick={handleSend} disabled={isLoading} className="p-3 bg-[#0057b8] text-white rounded-full hover:bg-blue-700 disabled:bg-slate-400">

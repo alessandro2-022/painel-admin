@@ -1,14 +1,14 @@
 import React from 'react';
-import { useTheme } from '../hooks/useTheme';
+// REMOVIDO: import { useTheme } from '../hooks/useTheme.tsx';
 
 const GenericMapBackground: React.FC = () => {
-    const [theme] = useTheme();
-    const isDark = theme === 'dark';
+    // REMOVIDO: const [theme] = useTheme();
+    // REMOVIDO: const isDark = theme === 'dark';
 
-    // Theme-based colors for a more robust SVG rendering that avoids issues with CSS classes inside SVGs.
-    const bgColor = isDark ? '#1e293b' : '#f1f5f9'; // slate-800 : slate-100
-    const gridColor = isDark ? '#334155' : '#cbd5e1'; // slate-700 : slate-300
-    const blockColor = isDark ? '#0f172a' : '#ffffff'; // slate-900 : white
+    // Cores fixas para o tema claro
+    const bgColor = '#ffffff'; // white
+    const gridColor = '#e5e7eb'; // gray-200
+    const blockColor = '#f9fafb'; // gray-50
 
     return (
         <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">

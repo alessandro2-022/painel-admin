@@ -2,6 +2,8 @@
   "name": "Goly Control Panel",
   "description": "Um painel de controle abrangente para a Goly, uma empresa de tecnologia e mobilidade. Este painel permite que os administradores monitorem motoristas em tempo real, gerenciem tarifas e promoções, e interajam com um assistente de suporte inteligente com tecnologia Gemini.",
   "requestFramePermissions": [
-    "geolocation"
+    "geolocation",
+    "camera",
+    "microphone"
   ]
 }

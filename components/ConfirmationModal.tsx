@@ -1,5 +1,5 @@
 import React from 'react';
-import Modal from './Modal';
+import Modal from './Modal.tsx';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -30,14 +30,14 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
   return (
     <Modal title={title} onClose={onClose}>
-      <div className="text-slate-600 dark:text-slate-300">
+      <div className="text-slate-600">
         <p>{message}</p>
       </div>
       <div className="mt-6 flex justify-end gap-3">
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-2 bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 font-semibold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors"
+          className="px-4 py-2 bg-slate-200 text-slate-800 font-semibold rounded-lg hover:bg-slate-300 transition-colors"
         >
           {cancelText}
         </button>

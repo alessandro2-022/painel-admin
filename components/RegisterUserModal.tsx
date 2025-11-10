@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { User } from '../types';
-import Modal from './Modal';
-import EyeIcon from './icons/EyeIcon';
-import EyeOffIcon from './icons/EyeOffIcon';
+import { User } from '../types.ts';
+import Modal from './Modal.tsx';
+import EyeIcon from './icons/EyeIcon.tsx';
+import EyeOffIcon from './icons/EyeOffIcon.tsx';
 
 interface RegisterUserModalProps {
   onClose: () => void;
@@ -41,7 +41,7 @@ const RegisterUserModal: React.FC<RegisterUserModalProps> = ({ onClose, onSave }
     <Modal title="Cadastrar Novo Usuário" onClose={onClose}>
       <form onSubmit={handleSaveClick} className="space-y-4">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-slate-600 dark:text-slate-300">Nome Completo</label>
+          <label htmlFor="name" className="block text-sm font-medium text-slate-600">Nome Completo</label>
           <input
             type="text"
             id="name"
@@ -49,11 +49,11 @@ const RegisterUserModal: React.FC<RegisterUserModalProps> = ({ onClose, onSave }
             value={formData.name}
             onChange={handleInputChange}
             required
-            className="mt-1 block w-full p-3 border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:ring-[#0057b8] focus:border-[#0057b8] dark:bg-slate-700 dark:text-slate-200"
+            className="mt-1 block w-full p-3 border-slate-300 rounded-md shadow-sm focus:ring-[#0057b8] focus:border-[#0057b8] text-slate-900"
           />
         </div>
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-slate-600 dark:text-slate-300">Email</label>
+          <label htmlFor="email" className="block text-sm font-medium text-slate-600">Email</label>
           <input
             type="email"
             id="email"
@@ -61,11 +61,11 @@ const RegisterUserModal: React.FC<RegisterUserModalProps> = ({ onClose, onSave }
             value={formData.email}
             onChange={handleInputChange}
             required
-            className="mt-1 block w-full p-3 border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:ring-[#0057b8] focus:border-[#0057b8] dark:bg-slate-700 dark:text-slate-200"
+            className="mt-1 block w-full p-3 border-slate-300 rounded-md shadow-sm focus:ring-[#0057b8] focus:border-[#0057b8] text-slate-900"
           />
         </div>
         <div>
-            <label htmlFor="password" className="block text-sm font-medium text-slate-600 dark:text-slate-300">Senha Provisória</label>
+            <label htmlFor="password" className="block text-sm font-medium text-slate-600">Senha Provisória</label>
             <div className="relative mt-1">
                 <input
                     type={showPassword ? 'text' : 'password'}
@@ -74,12 +74,12 @@ const RegisterUserModal: React.FC<RegisterUserModalProps> = ({ onClose, onSave }
                     value={formData.password}
                     onChange={handleInputChange}
                     required
-                    className="block w-full p-3 border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:ring-[#0057b8] focus:border-[#0057b8] dark:bg-slate-700 dark:text-slate-200"
+                    className="block w-full p-3 border-slate-300 rounded-md shadow-sm focus:ring-[#0057b8] focus:border-[#0057b8] text-slate-900"
                 />
                 <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
                     aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                 >
                     {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
@@ -87,13 +87,13 @@ const RegisterUserModal: React.FC<RegisterUserModalProps> = ({ onClose, onSave }
             </div>
         </div>
         <div>
-          <label htmlFor="role" className="block text-sm font-medium text-slate-600 dark:text-slate-300">Função</label>
+          <label htmlFor="role" className="block text-sm font-medium text-slate-600">Função</label>
           <select
             id="role"
             name="role"
             value={formData.role}
             onChange={handleInputChange}
-            className="mt-1 block w-full p-3 border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:ring-[#0057b8] focus:border-[#0057b8] dark:bg-slate-700 dark:text-slate-200"
+            className="mt-1 block w-full p-3 border-slate-300 rounded-md shadow-sm focus:ring-[#0057b8] focus:border-[#0057b8] text-slate-900"
           >
             <option value="operator">Operador</option>
             <option value="admin">Administrador</option>
@@ -103,7 +103,7 @@ const RegisterUserModal: React.FC<RegisterUserModalProps> = ({ onClose, onSave }
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 font-semibold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors"
+            className="px-4 py-2 bg-slate-200 text-slate-800 font-semibold rounded-lg hover:bg-slate-300 transition-colors"
           >
             Cancelar
           </button>

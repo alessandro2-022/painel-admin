@@ -1,97 +1,109 @@
 import React, { useState } from 'react';
-import GolyLogo from './icons/GolyLogo';
-import ThemeToggle from './ThemeToggle';
-import ChartIcon from './icons/ChartIcon';
-import MapIcon from './icons/MapIcon';
-import RouteIcon from './icons/RouteIcon';
-import SettingsIcon from './icons/SettingsIcon';
-import PromotionIcon from './icons/PromotionIcon';
-import ChatIcon from './icons/ChatIcon';
-import LiveIcon from './icons/LiveIcon';
-import LogoutIcon from './icons/LogoutIcon';
-import ChevronLeftIcon from './icons/ChevronLeftIcon';
-import ChevronRightIcon from './icons/ChevronRightIcon';
-import UsersIcon from './icons/UsersIcon';
-
-type Page = 'dashboard' | 'map' | 'routes' | 'fares' | 'promotions' | 'drivers' | 'support' | 'live';
+import GolyLogo from './icons/GolyLogo.tsx';
+import ChartIcon from './icons/ChartIcon.tsx';
+import MapIcon from './icons/MapIcon.tsx';
+import RouteIcon from './icons/RouteIcon.tsx';
+import SettingsIcon from './icons/SettingsIcon.tsx';
+import PromotionIcon from './icons/PromotionIcon.tsx';
+import ChatIcon from './icons/ChatIcon.tsx';
+import LiveIcon from './icons/LiveIcon.tsx';
+import UsersIcon from './icons/UsersIcon.tsx';
+import CarIcon from './icons/CarIcon.tsx';
+// REMOVIDO: import ThemeToggle from './ThemeToggle.tsx';
+import ChevronLeftIcon from './icons/ChevronLeftIcon.tsx';
+import ChevronRightIcon from './icons/ChevronRightIcon.tsx';
+import { View } from '../types.ts';
 
 interface SidebarProps {
-    currentPage: Page;
-    onPageChange: (page: Page) => void;
-    onLogout: () => void;
+  currentView: View;
+  setCurrentView: (view: View) => void;
 }
 
 const NavItem: React.FC<{
-    label: string;
-    icon: React.ReactNode;
-    isCollapsed: boolean;
-    isActive: boolean;
-    onClick: () => void;
-}> = ({ label, icon, isCollapsed, isActive, onClick }) => (
-    <li>
-        <button
-            onClick={onClick}
-            className={`flex items-center w-full p-3 my-1 rounded-lg transition-colors duration-200 ${
-                isActive
-                    ? 'bg-[#0057b8] text-white shadow-md'
-                    : 'text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700'
-            } ${isCollapsed ? 'justify-center' : ''}`}
-            aria-label={label}
-        >
-            {icon}
-            {!isCollapsed && <span className="ml-4 font-medium">{label}</span>}
-        </button>
-    </li>
+  label: string;
+  Icon: React.FC<React.SVGProps<SVGSVGElement>>;
+  isActive: boolean;
+  isCollapsed: boolean;
+  onClick: () => void;
+}> = ({ label, Icon, isActive, isCollapsed, onClick }) => (
+  <li>
+    <button
+      onClick={onClick}
+      className={`flex items-center w-full p-3 my-1 rounded-lg transition-colors duration-200
+        ${isActive
+          ? 'bg-[#0057b8] text-white shadow-md'
+          : 'text-slate-700 hover:bg-slate-200'
+        }
+        ${isCollapsed ? 'justify-center' : ''}`
+      }
+      aria-label={label}
+      aria-current={isActive ? 'page' : undefined}
+    >
+      <Icon className="h-6 w-6" />
+      {!isCollapsed && <span className="ml-4 font-medium">{label}</span>}
+    </button>
+  </li>
 );
 
-const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onLogout }) => {
-    const [isCollapsed, setIsCollapsed] = useState(false);
+const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView }) => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  
+  const navItems = [
+    { view: 'dashboard' as View, label: 'Dashboard' },
+    { view: 'map' as View, label: 'Mapa' },
+    { view: 'routes' as View, label: 'Otimizar Rota' },
+    { view: 'drivers' as View, label: 'Motoristas' },
+    { view: 'users' as View, label: 'Usuários' },
+    { view: 'promotions' as View, label: 'Promoções' },
+    { view: 'fares' as View, label: 'Tarifas' },
+    { view: 'support' as View, label: 'Suporte' },
+    { view: 'live-assistant' as View, label: 'Assistente' },
+  ];
+  
+  // A mapping of view to an icon component
+  const iconMap: { [key in View]: React.FC<React.SVGProps<SVGSVGElement>> } = {
+      dashboard: ChartIcon,
+      map: MapIcon,
+      routes: RouteIcon,
+      drivers: CarIcon,
+      users: UsersIcon,
+      promotions: PromotionIcon,
+      fares: SettingsIcon,
+      support: ChatIcon,
+      'live-assistant': LiveIcon,
+  };
 
-    const navItems = [
-        { id: 'dashboard', label: 'Dashboard', icon: <ChartIcon /> },
-        { id: 'map', label: 'Mapa ao Vivo', icon: <MapIcon /> },
-        { id: 'routes', label: 'Otimizar Rotas', icon: <RouteIcon /> },
-        { id: 'fares', label: 'Tarifas', icon: <SettingsIcon /> },
-        { id: 'promotions', label: 'Promoções', icon: <PromotionIcon /> },
-        { id: 'drivers', label: 'Motoristas', icon: <UsersIcon /> },
-        { id: 'support', label: 'Suporte', icon: <ChatIcon /> },
-        { id: 'live', label: 'Assistente', icon: <LiveIcon /> },
-    ];
 
-    return (
-        <aside className={`relative bg-white dark:bg-slate-800 flex flex-col transition-all duration-300 ease-in-out border-r border-slate-200 dark:border-slate-700 ${isCollapsed ? 'w-20' : 'w-64'}`}>
-            <div className={`flex items-center p-4 border-b border-slate-200 dark:border-slate-700 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
-                <div className="flex items-center gap-3">
-                    <GolyLogo className="h-8 w-8" />
-                    {!isCollapsed && <span className="text-2xl font-bold text-slate-800 dark:text-slate-100">Goly</span>}
-                </div>
-            </div>
-            <button onClick={() => setIsCollapsed(!isCollapsed)} className="absolute -right-3 top-16 z-10 w-6 h-6 bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 rounded-full flex items-center justify-center text-slate-500 hover:text-[#0057b8] focus:outline-none focus:ring-2 focus:ring-[#0057b8]">
-                {isCollapsed ? <ChevronRightIcon className="h-4 w-4" /> : <ChevronLeftIcon className="h-4 w-4" />}
-            </button>
-            <nav className="flex-1 px-2 py-4">
-                <ul>
-                    {navItems.map(item => (
-                        <NavItem
-                            key={item.id}
-                            label={item.label}
-                            icon={item.icon}
-                            isCollapsed={isCollapsed}
-                            isActive={currentPage === item.id}
-                            onClick={() => onPageChange(item.id as Page)}
-                        />
-                    ))}
-                </ul>
-            </nav>
-            <div className="px-2 py-4 border-t border-slate-200 dark:border-slate-700">
-                <ThemeToggle isCollapsed={isCollapsed} />
-                <button onClick={onLogout} className={`flex items-center w-full p-3 my-1 rounded-lg transition-colors duration-200 text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 ${isCollapsed ? 'justify-center' : ''}`}>
-                    <LogoutIcon />
-                    {!isCollapsed && <span className="ml-4 font-medium">Sair</span>}
-                </button>
-            </div>
-        </aside>
-    );
+  return (
+    <nav className={`flex flex-col bg-white border-r border-slate-200 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-20' : 'w-64'}`}>
+      <div className={`flex items-center border-b border-slate-200 p-4 h-16 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
+        <div className="flex items-center">
+            <GolyLogo className="w-8 h-8" />
+            {!isCollapsed && <span className="ml-2 text-xl font-bold text-slate-900">Goly</span>}
+        </div>
+        <button onClick={() => setIsCollapsed(!isCollapsed)} className="p-1 rounded-full hover:bg-slate-200 hidden lg:block">
+          {isCollapsed ? <ChevronRightIcon className="h-5 w-5" /> : <ChevronLeftIcon className="h-5 w-5" />}
+        </button>
+      </div>
+
+      <ul className="flex-1 px-2 py-4">
+        {navItems.map(item => (
+          <NavItem
+            key={item.view}
+            label={item.label}
+            Icon={iconMap[item.view]}
+            isActive={currentView === item.view}
+            isCollapsed={isCollapsed}
+            onClick={() => setCurrentView(item.view)}
+          />
+        ))}
+      </ul>
+
+      <div className="px-2 py-4 border-t border-slate-200">
+        {/* REMOVIDO: <ThemeToggle isCollapsed={isCollapsed} /> */}
+      </div>
+    </nav>
+  );
 };
 
 export default Sidebar;

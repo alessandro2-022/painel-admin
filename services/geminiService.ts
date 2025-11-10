@@ -1,16 +1,23 @@
 import { GoogleGenAI, Chat, GenerateContentResponse, LatLng, Modality } from "@google/genai";
 
-// FIX: API_KEY check should be at the top level
-if (!process.env.API_KEY) {
-    throw new Error("API_KEY environment variable for Gemini not set. Please set it to use Gemini features.");
-}
-
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+let ai: GoogleGenAI | null = null;
 let chat: Chat | null = null;
+
+const getAiInstance = (): GoogleGenAI => {
+    if (ai) {
+        return ai;
+    }
+    if (!process.env.API_KEY) {
+        throw new Error("API_KEY environment variable for Gemini not set. Please set it to use Gemini features.");
+    }
+    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    return ai;
+};
 
 const getChatInstance = (): Chat => {
     if (!chat) {
-        chat = ai.chats.create({
+        const genAI = getAiInstance();
+        chat = genAI.chats.create({
             model: 'gemini-2.5-flash',
             config: {
                 systemInstruction: 'Você é um assistente prestativo para a plataforma de caronas Goly. Seja conciso e profissional.',
@@ -27,7 +34,8 @@ export const getChatbotResponse = async (message: string): Promise<GenerateConte
 };
 
 export const getGroundedResponse = async (message: string, location: { latitude: number; longitude: number }): Promise<GenerateContentResponse> => {
-    return await ai.models.generateContent({
+    const genAI = getAiInstance();
+    return await genAI.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: message,
         config: {
@@ -43,7 +51,8 @@ export const getGroundedResponse = async (message: string, location: { latitude:
 
 export const getTextToSpeech = async (text: string): Promise<string | null> => {
     try {
-        const response = await ai.models.generateContent({
+        const genAI = getAiInstance();
+        const response = await genAI.models.generateContent({
             model: 'gemini-2.5-flash-preview-tts',
             contents: [{ parts: [{ text: text }] }],
             config: {
