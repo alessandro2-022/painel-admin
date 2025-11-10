@@ -54,6 +54,14 @@ export interface Promotion {
   history: PromotionHistory[];
 }
 
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: 'admin' | 'operator';
+  avatarUrl: string;
+}
+
 
 // --- Tipos do Aplicativo de Motorista ---
 

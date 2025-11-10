@@ -5,8 +5,6 @@ import MapIcon from './icons/MapIcon';
 import SettingsIcon from './icons/SettingsIcon';
 import PromotionIcon from './icons/PromotionIcon';
 import ChatIcon from './icons/ChatIcon';
-import LiveIcon from './icons/LiveIcon';
-import LogoutIcon from './icons/LogoutIcon';
 import ThemeToggle from './ThemeToggle';
 import ChevronLeftIcon from './icons/ChevronLeftIcon';
 import ChevronRightIcon from './icons/ChevronRightIcon';
@@ -17,10 +15,9 @@ interface SidebarProps {
   setCurrentView: (view: View) => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
-  onLogout: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isCollapsed, onToggleCollapse, onLogout }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isCollapsed, onToggleCollapse }) => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: ChartIcon },
     { id: 'map', label: 'Mapa ao Vivo', icon: MapIcon },
@@ -29,10 +26,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isCollap
     { id: 'promotions', label: 'Promoções', icon: PromotionIcon },
     { id: 'support', label: 'Chat de Suporte', icon: ChatIcon },
   ];
-
-  const handleLogout = () => {
-    onLogout();
-  };
 
   return (
     <aside className={`bg-white dark:bg-slate-800 shadow-lg flex flex-col dark:border-r dark:border-slate-700 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-20' : 'w-64'}`}>
@@ -63,13 +56,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isCollap
       
       <div className="px-2 md:px-4 py-2 border-t border-slate-200 dark:border-slate-700">
         <ThemeToggle isCollapsed={isCollapsed} />
-        <button
-          onClick={handleLogout}
-          className={`flex items-center w-full p-3 my-1 rounded-lg transition-colors duration-200 text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 ${isCollapsed ? 'justify-center' : ''}`}
-        >
-          <LogoutIcon className="h-6 w-6" />
-          {!isCollapsed && <span className="ml-4 font-medium">Sair</span>}
-        </button>
         <button
           onClick={onToggleCollapse}
           className={`flex items-center w-full p-3 my-1 rounded-lg transition-colors duration-200 text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 ${isCollapsed ? 'justify-center' : ''}`}
