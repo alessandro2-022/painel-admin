@@ -9,6 +9,7 @@ class WebSocketService {
     private reconnectAttempts = 0;
 
     constructor() {
+        console.log(`WebSocketService inicializado. Tentando conectar a: ${WEBSOCKET_URL}`);
         this.connect();
     }
 
@@ -37,15 +38,16 @@ class WebSocketService {
         };
 
         this.ws.onerror = (event) => {
+            // Log do objeto ErrorEvent completo para mais detalhes
             console.error('WebSocket error:', event);
             this.emitEvent('error', event);
             // O onclose será chamado em seguida, então tratamos a reconexão lá.
         };
 
-        this.ws.onclose = () => {
-            console.log('WebSocket disconnected');
-            this.emitEvent('close', null);
-            connectionStore.setState('error', 'Conexão em tempo real perdida. Tentando reconectar...');
+        this.ws.onclose = (event) => {
+            console.log(`WebSocket disconnected. Code: ${event.code}, Reason: ${event.reason}`);
+            this.emitEvent('close', event);
+            connectionStore.setState('error', `Conexão em tempo real perdida. Código: ${event.code}. Tentando reconectar...`);
             this.handleReconnect();
         };
     }

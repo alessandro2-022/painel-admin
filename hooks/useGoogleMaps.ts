@@ -34,6 +34,7 @@ const loadGoogleMapsScript = () => {
     if (!GOOGLE_MAPS_API_KEY) {
         loadStatus = 'error';
         loadingError = new Error("A chave da API do Google está ausente. Por favor, defina a variável de ambiente API_KEY.");
+        console.warn("API_KEY do Google Maps não encontrada. Certifique-se de que a variável de ambiente 'API_KEY' está configurada corretamente em seu ambiente de hospedagem.");
         notifyListeners();
         return;
     }
