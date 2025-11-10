@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import MapView from './components/MapView';
@@ -9,10 +9,30 @@ import LiveAssistant from './components/LiveAssistant';
 import Header from './components/Header';
 import { View } from './types';
 import RouteOptimization from './components/RouteOptimization';
+import Login from './components/Login';
+import { connectWebSocket } from './services/apiService';
 
 const App: React.FC = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    // Conecta ao WebSocket uma vez quando o aplicativo é montado.
+    connectWebSocket();
+  }, []); // O array de dependências vazio garante que isso seja executado apenas uma vez.
+
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+  };
+
+  if (!isLoggedIn) {
+    return <Login onLoginSuccess={handleLoginSuccess} />;
+  }
 
   const renderAdminView = () => {
     switch (currentView) {
@@ -33,12 +53,6 @@ const App: React.FC = () => {
       default:
         return <Dashboard />;
     }
-  };
-
-  const handleLogout = () => {
-    // Em uma aplicação real, isso limparia tokens de autenticação, etc.
-    // Por enquanto, apenas um alerta para indicar que a funcionalidade está desativada no modo de desenvolvimento.
-    alert('Logout indisponível na versão de desenvolvimento.');
   };
 
   return (

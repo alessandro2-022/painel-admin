@@ -1,38 +1,17 @@
-import React, { useState } from 'react';
-import { DriverProfile, RideRequest } from '../../types';
+import React from 'react';
+import { DriverProfile, Ride } from '../../types';
 import GenericMapBackground from '../../components/GenericMapBackground';
 import RideRequestCard from '../components/RideRequestCard';
 
 interface HomeScreenProps {
     profile: DriverProfile | null;
+    isOnline: boolean;
+    rideRequest: Ride | null;
+    onToggleOnline: () => void;
+    onRideResponse: (accepted: boolean) => void;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ profile }) => {
-    const [isOnline, setIsOnline] = useState(false);
-    const [rideRequest, setRideRequest] = useState<RideRequest | null>(null);
-
-    // Em uma aplicação real, você ouviria eventos de um WebSocket aqui
-    // para definir um novo pedido de corrida.
-    // Ex: socket.on('new_ride_request', (requestData) => setRideRequest(requestData));
-
-    const handleToggleOnline = () => {
-        if (!isOnline) {
-            // Lógica para ficar online (chamar API, etc.)
-            console.log("Motorista ficando online...");
-        } else {
-            // Lógica para ficar offline
-            console.log("Motorista ficando offline...");
-            setRideRequest(null); // Limpa qualquer solicitação pendente ao ficar offline
-        }
-        setIsOnline(prev => !prev);
-    };
-
-    const handleRideResponse = (accepted: boolean) => {
-        console.log(`Corrida ${accepted ? 'aceita' : 'recusada'}`);
-        // Aqui você adicionaria a lógica para notificar o backend
-        // e navegar para a tela da corrida ativa, se aceita.
-        setRideRequest(null);
-    };
+const HomeScreen: React.FC<HomeScreenProps> = ({ profile, isOnline, rideRequest, onToggleOnline, onRideResponse }) => {
     
     if (!profile) {
         return <div className="p-4">Carregando perfil...</div>;
@@ -55,17 +34,19 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ profile }) => {
 
                 <div className="relative flex-1 flex flex-col justify-end p-4 space-y-4">
                     {rideRequest && (
-                        <RideRequestCard request={rideRequest} onResponse={handleRideResponse} />
+                        <RideRequestCard request={rideRequest} onResponse={onRideResponse} />
                     )}
                     
-                    <button
-                        onClick={handleToggleOnline}
-                        className={`w-full py-4 rounded-xl text-lg font-bold text-white shadow-lg transition-transform transform hover:scale-105 ${
-                            isOnline ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
-                        }`}
-                    >
-                        {isOnline ? 'Ficar Offline' : 'Ficar Online'}
-                    </button>
+                    {!rideRequest && (
+                        <button
+                            onClick={onToggleOnline}
+                            className={`w-full py-4 rounded-xl text-lg font-bold text-white shadow-lg transition-transform transform hover:scale-105 ${
+                                isOnline ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+                            }`}
+                        >
+                            {isOnline ? 'Ficar Offline' : 'Ficar Online'}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

@@ -12,7 +12,8 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <ThemeProvider>
-      <DriverApp />
+      {/* FIX: The DriverApp component requires an onLogout prop. Since this is a standalone entry point, a placeholder function is provided to satisfy the type requirement. */}
+      <DriverApp onLogout={() => console.log('Logout triggered.')} />
     </ThemeProvider>
   </React.StrictMode>
 );

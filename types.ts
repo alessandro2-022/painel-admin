@@ -1,9 +1,11 @@
 export type View = 'dashboard' | 'map' | 'fares' | 'promotions' | 'support' | 'live' | 'routeOptimization';
 
+export type DriverStatus = 'online' | 'offline' | 'on_trip';
+
 export interface Driver {
   id: number;
   name: string;
-  online: boolean;
+  status: DriverStatus;
   position: {
     lat: number;
     lng: number;
@@ -58,15 +60,24 @@ export interface Promotion {
 export type DriverView = 'home' | 'earnings' | 'support';
 
 export interface DriverProfile {
-    id: string;
+    id: number;
     name: string;
     avatarUrl: string;
 }
 
-export interface RideRequest {
-    id: string;
-    pickupLocation: string;
-    dropoffLocation: string;
-    fare: number;
-    etaMinutes: number;
+// Representa o ciclo de vida completo de uma corrida
+export type RideStatus = 'request' | 'en_route_to_pickup' | 'at_pickup' | 'en_route_to_destination' | 'completed' | 'cancelled';
+
+export interface Ride {
+  id: string;
+  pickupLocation: string;
+  dropoffLocation: string;
+  fare: number;
+  etaMinutes: number; // ETA do motorista até o ponto de embarque
+  status: RideStatus;
+  driverId: number;
+  completedAt?: string;
 }
+
+// O que o motorista vê inicialmente. É um subconjunto da corrida completa.
+export type RideRequest = Omit<Ride, 'status' | 'driverId'>;

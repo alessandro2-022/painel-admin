@@ -35,8 +35,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
     }, []);
 
-    // FIX: Replaced JSX with React.createElement to resolve parsing errors in a .ts file.
-    // JSX syntax is not standard in .ts files and was causing compilation to fail.
+    // FIX: Replaced JSX syntax with React.createElement to prevent parsing errors in a .ts file.
     return React.createElement(ThemeContext.Provider, { value: { theme, toggleTheme } }, children);
 };
 

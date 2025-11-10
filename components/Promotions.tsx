@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Promotion } from '../types';
 import EditIcon from './icons/EditIcon';
 import HistoryIcon from './icons/HistoryIcon';
-import { MOCK_PROMOTIONS } from '../constants';
+import { getPromotions, createPromotion, updatePromotion, togglePromotionStatus } from '../services/apiService';
 
 type FormData = Omit<Promotion, 'id' | 'isActive' | 'createdAt' | 'updatedAt' | 'history'>;
 
@@ -16,20 +16,52 @@ const Promotions: React.FC = () => {
     const [showSuccess, setShowSuccess] = useState('');
     const [dateFilter, setDateFilter] = useState({ startDate: '', endDate: '' });
     const formRef = useRef<HTMLFormElement>(null);
+    
+    const [currentPage, setCurrentPage] = useState(1);
+    const PROMOS_PER_PAGE = 10;
+
 
     const emptyForm: FormData = { code: '', discount: 0, target: 'user' };
     const [formData, setFormData] = useState<FormData>(emptyForm);
     
     const formatDate = (dateString: string) => new Date(dateString).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 
-    // Simula o carregamento de dados de uma API
-    useEffect(() => {
-        setTimeout(() => {
-            setPromotions(MOCK_PROMOTIONS);
-            setFilteredPromotions(MOCK_PROMOTIONS);
-            setIsLoading(false);
-        }, 1000);
+    const applyCurrentFilter = useCallback((sourcePromotions: Promotion[], currentFilter: { startDate: string; endDate: string }) => {
+        let filtered = [...sourcePromotions];
+        const { startDate, endDate } = currentFilter;
+
+        if (startDate) {
+            const start = new Date(startDate);
+            start.setUTCHours(0, 0, 0, 0);
+            filtered = filtered.filter(p => new Date(p.createdAt) >= start);
+        }
+        if (endDate) {
+            const end = new Date(endDate);
+            end.setUTCHours(23, 59, 59, 999);
+            filtered = filtered.filter(p => new Date(p.createdAt) <= end);
+        }
+        setFilteredPromotions(filtered);
+        setCurrentPage(1); // Resetar para a primeira página ao filtrar
     }, []);
+
+    const fetchPromotions = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const data = await getPromotions();
+            // Ordena as promoções pela data de criação mais recente
+            data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            setPromotions(data);
+            applyCurrentFilter(data, dateFilter);
+        } catch (error) {
+            console.error("Failed to fetch promotions", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [applyCurrentFilter, dateFilter]);
+
+    useEffect(() => {
+        fetchPromotions();
+    }, [fetchPromotions]);
 
     useEffect(() => {
         if (editingPromo) {
@@ -53,88 +85,39 @@ const Promotions: React.FC = () => {
         setFormData(prev => ({...prev, target}));
     };
     
-    const createHistoryEntry = (oldPromo: Promotion, newPromoData: Partial<Promotion>): string | null => {
-        const changes: string[] = [];
-        if (oldPromo.discount !== newPromoData.discount) {
-            changes.push(`Desconto alterado de ${oldPromo.discount}% para ${newPromoData.discount}%.`);
-        }
-        if (oldPromo.target !== newPromoData.target) {
-            changes.push(`Público alterado de '${oldPromo.target}' para '${newPromoData.target}'.`);
-        }
-         if (oldPromo.code !== newPromoData.code) {
-            changes.push(`Código alterado de '${oldPromo.code}' para '${newPromoData.code}'.`);
-        }
-        return changes.length > 0 ? changes.join(' ') : null;
-    };
-    
-    const applyCurrentFilter = (sourcePromotions: Promotion[], currentFilter: { startDate: string; endDate: string }) => {
-        let filtered = [...sourcePromotions];
-        const { startDate, endDate } = currentFilter;
-
-        if (startDate) {
-            const start = new Date(startDate);
-            start.setUTCHours(0, 0, 0, 0);
-            filtered = filtered.filter(p => new Date(p.createdAt) >= start);
-        }
-        if (endDate) {
-            const end = new Date(endDate);
-            end.setUTCHours(23, 59, 59, 999);
-            filtered = filtered.filter(p => new Date(p.createdAt) <= end);
-        }
-        setFilteredPromotions(filtered);
-    };
-
-    const handleFormSubmit = (e: React.FormEvent) => {
+    const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.code || formData.discount <= 0) return;
         
         setIsSaving(true);
-        setTimeout(() => {
-            const now = new Date().toISOString();
-            let updatedPromotions: Promotion[];
-
+        try {
             if (editingPromo) {
-                const changeDescription = createHistoryEntry(editingPromo, formData);
-                const updatedHistory = [...editingPromo.history];
-                if(changeDescription) {
-                    updatedHistory.unshift({ date: now, change: changeDescription });
-                }
-
-                updatedPromotions = promotions.map(p => p.id === editingPromo.id ? { ...editingPromo, ...formData, updatedAt: now, history: updatedHistory } : p);
+                await updatePromotion(editingPromo.id, formData);
                 setShowSuccess(`Promoção "${formData.code}" atualizada!`);
             } else {
-                const newPromo: Promotion = {
-                    id: `promo-${Date.now()}`,
-                    ...formData,
-                    isActive: true,
-                    createdAt: now,
-                    updatedAt: now,
-                    history: [{ date: now, change: 'Promoção criada.' }]
-                };
-                updatedPromotions = [newPromo, ...promotions];
+                await createPromotion(formData);
                 setShowSuccess(`Promoção "${formData.code}" criada!`);
             }
-            setPromotions(updatedPromotions);
-            applyCurrentFilter(updatedPromotions, dateFilter);
-            
+            await fetchPromotions(); // Re-fetch all promotions to get the latest state
+        } catch (error) {
+            console.error("Failed to save promotion", error);
+        } finally {
             setIsSaving(false);
             setEditingPromo(null);
             setTimeout(() => setShowSuccess(''), 3000);
-        }, 1000);
+        }
     };
 
-    const handleToggleStatus = (id: string) => {
-        const now = new Date().toISOString();
-        const updatedPromotions = promotions.map(p => {
-            if (p.id === id) {
-                const newStatus = !p.isActive;
-                const updatedHistory = [...p.history, { date: now, change: `Status alterado para ${newStatus ? 'Ativo' : 'Inativo'}.` }].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                return { ...p, isActive: newStatus, updatedAt: now, history: updatedHistory };
-            }
-            return p;
-        });
-        setPromotions(updatedPromotions);
-        applyCurrentFilter(updatedPromotions, dateFilter);
+    const handleToggleStatus = async (id: string) => {
+        try {
+            await togglePromotionStatus(id);
+            // Atualiza o estado localmente para uma resposta de UI mais rápida,
+            // ou pode optar por refazer o fetch de tudo com fetchPromotions().
+            setPromotions(prev => prev.map(p => p.id === id ? { ...p, isActive: !p.isActive, updatedAt: new Date().toISOString() } : p ));
+            setFilteredPromotions(prev => prev.map(p => p.id === id ? { ...p, isActive: !p.isActive, updatedAt: new Date().toISOString() } : p ));
+        } catch(error) {
+            console.error("Failed to toggle status", error);
+        }
     };
 
     const handleCancelEdit = () => {
@@ -152,6 +135,22 @@ const Promotions: React.FC = () => {
     const handleClearFilter = () => {
         setDateFilter({ startDate: '', endDate: '' });
         setFilteredPromotions([...promotions]);
+        setCurrentPage(1); // Resetar para a primeira página
+    };
+    
+    // Lógica de Paginação
+    const totalPages = Math.ceil(filteredPromotions.length / PROMOS_PER_PAGE);
+    const paginatedPromotions = filteredPromotions.slice(
+        (currentPage - 1) * PROMOS_PER_PAGE,
+        currentPage * PROMOS_PER_PAGE
+    );
+
+    const handlePrevPage = () => {
+        setCurrentPage(prev => Math.max(prev - 1, 1));
+    };
+
+    const handleNextPage = () => {
+        setCurrentPage(prev => Math.min(prev + 1, totalPages));
     };
 
     return (
@@ -194,8 +193,8 @@ const Promotions: React.FC = () => {
                                 <tr>
                                     <td colSpan={5} className="text-center p-4 text-slate-500 dark:text-slate-400">Carregando promoções...</td>
                                 </tr>
-                            ) : filteredPromotions.length > 0 ? (
-                                filteredPromotions.map(promo => (
+                            ) : paginatedPromotions.length > 0 ? (
+                                paginatedPromotions.map(promo => (
                                     <tr key={promo.id} className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50">
                                         <td className="p-3 font-mono text-slate-700 dark:text-slate-200">{promo.code}</td>
                                         <td className="p-3 font-medium text-slate-700 dark:text-slate-200">{promo.discount}%</td>
@@ -227,6 +226,28 @@ const Promotions: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+
+                {totalPages > 1 && (
+                    <div className="mt-6 flex justify-between items-center">
+                        <button
+                            onClick={handlePrevPage}
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            Anterior
+                        </button>
+                        <span className="text-sm text-slate-500 dark:text-slate-400">
+                            Página {currentPage} de {totalPages}
+                        </span>
+                        <button
+                            onClick={handleNextPage}
+                            disabled={currentPage === totalPages}
+                            className="px-4 py-2 bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            Próxima
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Formulário de Criação/Edição */}

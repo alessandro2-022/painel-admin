@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Driver } from '../types';
-import { MOCK_DRIVERS } from '../constants';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Driver, DriverStatus } from '../types';
+import { getDrivers, getDashboardStats } from '../services/apiService';
 
 const StatCard: React.FC<{ title: string; value: string; color: string }> = ({ title, value, color }) => (
   <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md transition-all hover:shadow-lg hover:-translate-y-1 dark:border dark:border-slate-700/50 dark:hover:border-slate-600">
@@ -19,28 +19,28 @@ const weeklyRideData = [
   { day: 'Dom', rides: 0 },
 ];
 
-const initialHistoryData = {
-    week: { totalRides: '0', totalRevenue: 'R$ 0,00', avgRating: 'N/A' },
-    month: { totalRides: '0', totalRevenue: 'R$ 0,00', avgRating: 'N/A' },
-    year: { totalRides: '0', totalRevenue: 'R$ 0,00', avgRating: 'N/A' },
-};
-
-
-const RideHistoryWidget: React.FC = () => {
+const RideHistoryWidget: React.FC<{ onStatsUpdate: (stats: { completedToday: number }) => void }> = ({ onStatsUpdate }) => {
     type TimeFilter = 'week' | 'month' | 'year';
     const [timeFilter, setTimeFilter] = useState<TimeFilter>('week');
-    const [data, setData] = useState(initialHistoryData.week);
+    const [data, setData] = useState({ totalRides: 0, totalRevenue: 0 });
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        setIsLoading(true);
-        // Em um app real, aqui seria feita uma chamada de API
-        // com base no timeFilter para buscar os dados.
-        setTimeout(() => {
-             setData(initialHistoryData[timeFilter]);
-             setIsLoading(false);
-        }, 500);
-    }, [timeFilter]);
+        const fetchStats = async () => {
+            setIsLoading(true);
+            try {
+                const stats = await getDashboardStats(timeFilter);
+                setData({ totalRides: stats.totalRides, totalRevenue: stats.totalRevenue });
+                onStatsUpdate({ completedToday: stats.completedToday });
+            } catch (e) {
+                console.error("Failed to fetch dashboard stats", e);
+                setData({ totalRides: 0, totalRevenue: 0 });
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchStats();
+    }, [timeFilter, onStatsUpdate]);
 
     const getButtonClasses = (filter: TimeFilter) => 
         `px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200 ${
@@ -75,11 +75,11 @@ const RideHistoryWidget: React.FC = () => {
                     </div>
                     <div>
                         <h3 className="text-slate-500 dark:text-slate-400">Receita Total</h3>
-                        <p className="text-2xl font-bold text-slate-800 dark:text-slate-200 mt-1">{data.totalRevenue}</p>
+                        <p className="text-2xl font-bold text-slate-800 dark:text-slate-200 mt-1">R$ {data.totalRevenue.toFixed(2)}</p>
                     </div>
                     <div>
                         <h3 className="text-slate-500 dark:text-slate-400">Avaliação Média</h3>
-                        <p className="text-2xl font-bold text-slate-800 dark:text-slate-200 mt-1">{data.avgRating} ★</p>
+                        <p className="text-2xl font-bold text-slate-800 dark:text-slate-200 mt-1">N/A ★</p>
                     </div>
                 </div>
             )}
@@ -91,63 +91,67 @@ const RideHistoryWidget: React.FC = () => {
 const Dashboard: React.FC = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [dashboardStats, setDashboardStats] = useState({ completedToday: 0 });
 
-  // Simula o carregamento de dados de uma API
-  useEffect(() => {
-    // Em uma aplicação real, aqui você faria a chamada fetch para sua API
-    // ex: fetch('/api/drivers').then(res => res.json()).then(data => setDrivers(data));
-    setTimeout(() => {
-      setDrivers(MOCK_DRIVERS);
-      setIsLoading(false);
-    }, 1000);
+  const handleStatsUpdate = useCallback((stats: { completedToday: number }) => {
+    setDashboardStats(stats);
   }, []);
 
-  const onlineDrivers = drivers.filter(d => d.online).length;
+  useEffect(() => {
+    const fetchDrivers = async () => {
+      setIsLoading(true);
+      try {
+        const driverData = await getDrivers();
+        setDrivers(driverData);
+      } catch (error) {
+        console.error("Failed to fetch drivers", error);
+        // Aqui você poderia definir um estado de erro para exibir na UI
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchDrivers();
+  }, []);
+
+  const onlineDrivers = drivers.filter(d => d.status === 'online').length;
+  const onTripDrivers = drivers.filter(d => d.status === 'on_trip').length;
   const totalDrivers = drivers.length;
   // Esses valores seriam carregados de uma API
   const registeredCustomers = "0";
-  const completedRides = "0";
-  const driverCancellations = "0";
-  const userCancellations = "0";
 
   const maxRides = 100; // Valor padrão quando não há dados
 
-  // SVG wave chart calculations
-  const svgWidth = 700;
-  const svgHeight = 200; // Visual height for the wave within the SVG
-  const points = weeklyRideData.map((data, index) => {
-    const x = (index / (weeklyRideData.length - 1)) * svgWidth;
-    const y = svgHeight - (data.rides / maxRides) * (svgHeight - 10); // Leave some padding
-    return { x, y, rides: data.rides, day: data.day };
-  });
+  const pathD = 'M 0,200 C 116.67,200 116.67,200 233.33,200 C 350,200 350,200 466.67,200 C 583.33,200 583.33,200 700,200';
+  const areaPathD = `${pathD} L 700,205 L 0,205 Z`;
 
-  const pathD = points.reduce((acc, point, i, a) => {
-    if (i === 0) return `M ${point.x},${point.y}`;
-    const [cp1x, cp1y] = [(a[i-1].x + point.x) / 2, a[i-1].y];
-    const [cp2x, cp2y] = [(a[i-1].x + point.x) / 2, point.y];
-    return `${acc} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${point.x},${point.y}`;
-  }, '');
-
-  const areaPathD = `${pathD} L ${svgWidth},${svgHeight + 5} L 0,${svgHeight + 5} Z`;
-
+  const DriverStatusBadge: React.FC<{ status: DriverStatus }> = ({ status }) => {
+    const statusInfo = {
+      online: { text: 'Online', color: 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' },
+      on_trip: { text: 'Em Viagem', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' },
+      offline: { text: 'Offline', color: 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300' },
+    };
+    return (
+      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${statusInfo[status].color}`}>
+        {statusInfo[status].text}
+      </span>
+    );
+  };
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard title="Motoristas Online" value={`${onlineDrivers}`} color="text-green-500" />
+        <StatCard title="Motoristas em Viagem" value={`${onTripDrivers}`} color="text-blue-500" />
         <StatCard title="Total de Motoristas" value={`${totalDrivers}`} color="text-slate-700 dark:text-slate-300" />
         <StatCard title="Clientes Cadastrados" value={registeredCustomers} color="text-slate-700 dark:text-slate-300" />
-        <StatCard title="Corridas Concluídas" value={completedRides} color="text-[#0057b8]" />
-        <StatCard title="Cancelamentos (Motorista)" value={driverCancellations} color="text-amber-600" />
-        <StatCard title="Cancelamentos (Usuário)" value={userCancellations} color="text-red-500" />
+        <StatCard title="Corridas Concluídas (Hoje)" value={`${dashboardStats.completedToday}`} color="text-[#0057b8]" />
       </div>
 
-      <RideHistoryWidget />
+      <RideHistoryWidget onStatsUpdate={handleStatsUpdate} />
 
        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md dark:border dark:border-slate-700/50">
         <h2 className="text-xl font-semibold mb-4 text-slate-800 dark:text-slate-100">Resumo Semanal de Corridas</h2>
         <div className="relative h-80">
-          {/* Y-Axis Labels */}
           <div className="absolute top-0 bottom-10 left-0 flex flex-col justify-between text-right text-xs font-medium text-slate-400 dark:text-slate-500 w-8 pr-2">
               <span>{maxRides}</span>
               <span>{Math.round(maxRides * 0.75)}</span>
@@ -156,52 +160,25 @@ const Dashboard: React.FC = () => {
               <span>0</span>
           </div>
           
-          {/* Chart Area */}
           <div className="absolute top-0 left-10 right-0 bottom-10">
-              {/* Grid Lines */}
               <div className="absolute inset-0 grid grid-rows-4">
                   {[...Array(5)].map((_, i) => <div key={i} className="border-t border-slate-200/80 dark:border-slate-700/80"></div>)}
               </div>
 
-              {/* SVG Wave and interactive points */}
               <div className="relative w-full h-full">
-                <svg className="absolute inset-0" width="100%" height="100%" viewBox={`0 0 ${svgWidth} ${svgHeight}`} preserveAspectRatio="none">
+                <svg className="absolute inset-0" width="100%" height="100%" viewBox="0 0 700 200" preserveAspectRatio="none">
                   <defs>
                     <linearGradient id="waveGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                       <stop offset="0%" stopColor="rgba(59, 130, 246, 0.4)" />
                       <stop offset="100%" stopColor="rgba(59, 130, 246, 0)" />
                     </linearGradient>
-                    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-                      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                      <feMerge>
-                        <feMergeNode in="coloredBlur"/>
-                        <feMergeNode in="SourceGraphic"/>
-                      </feMerge>
-                    </filter>
                   </defs>
                   <path d={areaPathD} fill="url(#waveGradient)" className="opacity-75" />
-                  <path d={pathD} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'url(#glow)', opacity: 0.8 }}/>
+                  <path d={pathD} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-
-                {/* Interactive Points & Tooltips */}
-                <div className="absolute inset-0 flex justify-around">
-                    {points.map(point => (
-                        <div key={point.day} className="relative group w-full h-full flex justify-center">
-                            <div className="absolute transition-transform duration-200 ease-out group-hover:-translate-y-1" style={{ top: `${(point.y / svgHeight) * 100}%`, left: `${(point.x / svgWidth) * 100}%` }}>
-                                <div className="absolute -translate-x-1/2 -translate-y-1/2">
-                                  <div className="absolute w-3 h-3 bg-white dark:bg-slate-800 border-2 border-[#3b82f6] rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                  <span className="absolute bottom-full mb-3 w-max bg-slate-900 dark:bg-slate-700 text-white dark:text-slate-200 text-xs rounded py-1 px-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform -translate-x-1/2 shadow-lg">
-                                      {point.rides} corridas
-                                  </span>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
               </div>
           </div>
 
-          {/* X-Axis Labels */}
           <div className="absolute bottom-0 left-10 right-0 flex justify-around">
               {weeklyRideData.map(data => (
                 <span key={data.day} className="text-xs font-medium text-slate-500 dark:text-slate-400 pt-2">{data.day}</span>
@@ -212,7 +189,7 @@ const Dashboard: React.FC = () => {
 
 
       <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md dark:border dark:border-slate-700/50">
-        <h2 className="text-xl font-semibold mb-4 dark:text-slate-100">Motoristas Online</h2>
+        <h2 className="text-xl font-semibold mb-4 dark:text-slate-100">Status dos Motoristas</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
@@ -227,21 +204,19 @@ const Dashboard: React.FC = () => {
                 <tr>
                   <td colSpan={3} className="text-center p-4 text-slate-500 dark:text-slate-400">Carregando motoristas...</td>
                 </tr>
-              ) : drivers.filter(d => d.online).length > 0 ? (
-                drivers.filter(d => d.online).map(driver => (
+              ) : drivers.length > 0 ? (
+                drivers.map(driver => (
                   <tr key={driver.id} className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50">
                     <td className="p-3 font-medium">{driver.name}</td>
                     <td className="p-3">
-                      <span className="bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 text-xs font-semibold px-2 py-1 rounded-full">
-                        Online
-                      </span>
+                      <DriverStatusBadge status={driver.status} />
                     </td>
-                    <td className="p-3 text-sm text-slate-500 dark:text-slate-400">{`${driver.position.lat.toFixed(4)}, ${driver.position.lng.toFixed(4)}`}</td>
+                    <td className="p-3 text-sm text-slate-500 dark:text-slate-400">{driver.status !== 'offline' ? `${driver.position.lat.toFixed(4)}, ${driver.position.lng.toFixed(4)}` : 'N/A'}</td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={3} className="text-center p-4 text-slate-500 dark:text-slate-400">Nenhum motorista online no momento.</td>
+                  <td colSpan={3} className="text-center p-4 text-slate-500 dark:text-slate-400">Nenhum motorista cadastrado.</td>
                 </tr>
               )}
             </tbody>
