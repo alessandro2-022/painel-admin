@@ -96,10 +96,9 @@ export function connectWebSocket() {
     
     isConnecting = true;
 
-    // Constrói a URL do WebSocket de forma segura.
-    // Navegadores modernos exigem que uma página HTTPS (`https`) se conecte a um WebSocket seguro (`wss://`).
-    // Esta lógica garante que o protocolo correto seja sempre usado.
-    const wsUrl = (window.location.protocol === "https:" ? "wss://" : "ws://") + window.location.host + "/ws";
+    // Constrói a URL do WebSocket de forma segura, substituindo http/https por ws/wss.
+    // Isso garante que uma página segura (https) sempre use uma conexão segura (wss).
+    const wsUrl = window.location.origin.replace(/^http/, 'ws') + '/ws';
 
     try {
         socket = new WebSocket(wsUrl);
@@ -128,14 +127,13 @@ export function connectWebSocket() {
             }
         };
 
-        socket.onerror = (error) => {
-            console.error('Erro no WebSocket:', error);
-            // O evento onclose será chamado em seguida, lidando com a reconexão.
+        socket.onerror = (event: Event) => {
+            console.error('Ocorreu um erro na conexão WebSocket. O evento onclose fornecerá mais detalhes.');
             isConnecting = false;
         };
 
-        socket.onclose = () => {
-            console.log('Desconectado do servidor WebSocket. Tentando reconectar em 5s...');
+        socket.onclose = (event: CloseEvent) => {
+            console.log(`Desconectado do servidor WebSocket. Código: ${event.code}, Motivo: '${event.reason || 'Nenhum motivo especificado'}'. Tentando reconectar em 5s...`);
             socket = null;
             isConnecting = false;
             reconnectTimeout = setTimeout(connectWebSocket, 5000);
