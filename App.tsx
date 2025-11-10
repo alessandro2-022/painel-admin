@@ -1,132 +1,75 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Sidebar from './components/Sidebar';
+import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import MapView from './components/MapView';
 import Fares from './components/Fares';
 import Promotions from './components/Promotions';
 import SupportChat from './components/SupportChat';
-import Header from './components/Header';
-import { View, User } from './types';
+import LiveAssistant from './components/LiveAssistant';
 import RouteOptimization from './components/RouteOptimization';
+import DriversManagement from './components/DriversManagement';
 import Login from './components/Login';
-import { connectWebSocket } from './services/apiService';
-import ProfileModal from './components/ProfileModal';
-import RegisterUserModal from './components/RegisterUserModal';
+
+type Page = 'dashboard' | 'map' | 'routes' | 'fares' | 'promotions' | 'drivers' | 'support' | 'live';
+
+const pageTitles: Record<Page, string> = {
+    dashboard: 'Dashboard',
+    map: 'Mapa ao Vivo',
+    routes: 'Otimização de Rotas',
+    fares: 'Configuração de Tarifas',
+    promotions: 'Gerenciamento de Promoções',
+    drivers: 'Gerenciamento de Motoristas',
+    support: 'Chat de Suporte',
+    live: 'Assistente ao Vivo',
+};
 
 const App: React.FC = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentView, setCurrentView] = useState<View>('dashboard');
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [currentPage, setCurrentPage] = useState<Page>('dashboard');
 
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
-  const [activeModal, setActiveModal] = useState<'profile' | 'register' | null>(null);
-
-  useEffect(() => {
-    connectWebSocket();
-  }, []);
-
-  const handleLoginSuccess = () => {
-    // Mock de dados de usuário para demonstração
-    const initialUsers: User[] = [
-      { id: 1, name: 'Admin Goly', email: 'admin@goly.com', role: 'admin', avatarUrl: `https://i.pravatar.cc/150?u=admin@goly.com` },
-      { id: 2, name: 'Operador Fulano', email: 'operador@goly.com', role: 'operator', avatarUrl: `https://i.pravatar.cc/150?u=operador@goly.com` },
-    ];
-    setUsers(initialUsers);
-    setCurrentUser(initialUsers[0]); // Define o primeiro usuário como o admin logado
-    setIsLoggedIn(true);
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setIsLoggedIn(false);
-  };
-
-  const handleCloseModal = () => {
-    setActiveModal(null);
-  };
-  
-  const handleUpdateUser = (updatedUser: User) => {
-      // Simula a atualização do usuário
-      setCurrentUser(updatedUser);
-      setUsers(prevUsers => prevUsers.map(u => u.id === updatedUser.id ? updatedUser : u));
-      alert('Perfil atualizado com sucesso!');
-      handleCloseModal();
-  };
-
-  const handleRegisterUser = (newUser: Omit<User, 'id' | 'avatarUrl'>) => {
-      // Simula o registro de um novo usuário
-      const userWithId: User = { 
-          ...newUser, 
-          id: Date.now(), 
-          avatarUrl: `https://i.pravatar.cc/150?u=${newUser.email}` 
-      };
-      setUsers(prevUsers => [...prevUsers, userWithId]);
-      alert(`Usuário ${newUser.name} registrado com sucesso!`);
-      handleCloseModal();
-  };
-
-
-  if (!isLoggedIn) {
-    return <Login onLoginSuccess={handleLoginSuccess} />;
-  }
-
-  const renderAdminView = () => {
-    switch (currentView) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'map':
-        return <MapView />;
-      case 'routeOptimization':
-        return <RouteOptimization />;
-      case 'fares':
-        return <Fares />;
-      case 'promotions':
-        return <Promotions />;
-      case 'support':
-        return <SupportChat />;
-      default:
-        return <Dashboard />;
+    const renderPage = () => {
+        switch (currentPage) {
+            case 'dashboard':
+                return <Dashboard />;
+            case 'map':
+                return <MapView />;
+            case 'routes':
+                return <RouteOptimization />;
+            case 'fares':
+                return <Fares />;
+            case 'promotions':
+                return <Promotions />;
+            case 'drivers':
+                return <DriversManagement />;
+            case 'support':
+                return <SupportChat />;
+            case 'live':
+                return <LiveAssistant />;
+            default:
+                return <Dashboard />;
+        }
+    };
+    
+    if (!isLoggedIn) {
+        return <Login onLoginSuccess={() => setIsLoggedIn(true)} />;
     }
-  };
 
-  return (
-    <div className="flex h-screen bg-slate-100 dark:bg-slate-900 font-sans text-slate-800 dark:text-slate-200">
-      <Sidebar 
-        currentView={currentView} 
-        setCurrentView={setCurrentView}
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-      />
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {currentUser && (
-          <Header 
-            currentView={currentView} 
-            currentUser={currentUser}
-            onLogout={handleLogout}
-            onOpenModal={setActiveModal}
-          />
-        )}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          {renderAdminView()}
+    return (
+        <div className="h-screen w-screen flex bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-sans">
+            <Sidebar 
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                onLogout={() => setIsLoggedIn(false)}
+            />
+            <div className="flex-1 flex flex-col overflow-hidden">
+                <Header pageTitle={pageTitles[currentPage]} />
+                <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+                    {renderPage()}
+                </main>
+            </div>
         </div>
-      </main>
-
-      {activeModal === 'profile' && currentUser && (
-        <ProfileModal 
-          user={currentUser}
-          onClose={handleCloseModal}
-          onSave={handleUpdateUser}
-        />
-      )}
-      {activeModal === 'register' && (
-        <RegisterUserModal
-          onClose={handleCloseModal}
-          onSave={handleRegisterUser}
-        />
-      )}
-    </div>
-  );
+    );
 };
 
 export default App;

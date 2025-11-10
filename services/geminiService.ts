@@ -1,7 +1,6 @@
-
-
 import { GoogleGenAI, Chat, GenerateContentResponse, LatLng, Modality } from "@google/genai";
 
+// FIX: API_KEY check should be at the top level
 if (!process.env.API_KEY) {
     throw new Error("API_KEY environment variable for Gemini not set. Please set it to use Gemini features.");
 }

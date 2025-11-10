@@ -1,16 +1,35 @@
-export type View = 'dashboard' | 'map' | 'fares' | 'promotions' | 'support' | 'routeOptimization';
-
-export type DriverStatus = 'online' | 'offline' | 'on_trip';
+export type DriverStatus = 'online' | 'on_trip' | 'offline';
 
 export interface Driver {
   id: number;
   name: string;
+  avatarUrl?: string;
   status: DriverStatus;
   position: {
     lat: number;
     lng: number;
   };
-  avatarUrl?: string;
+}
+
+export interface Promotion {
+  id: string;
+  code: string;
+  discount: number;
+  target: 'user' | 'driver';
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  history: PromotionHistoryEntry[];
+}
+
+export interface PromotionHistoryEntry {
+  date: string;
+  change: string;
+}
+
+export interface GroundingSource {
+  uri: string;
+  title: string;
 }
 
 export interface ChatMessage {
@@ -18,11 +37,6 @@ export interface ChatMessage {
   role: 'user' | 'model';
   text: string;
   sources?: GroundingSource[];
-}
-
-export interface GroundingSource {
-    uri: string;
-    title: string;
 }
 
 export interface Stop {
@@ -38,22 +52,6 @@ export interface OptimizedRoute {
   totalDuration: number;
 }
 
-export interface PromotionHistory {
-  date: string;
-  change: string;
-}
-
-export interface Promotion {
-  id: string;
-  code: string;
-  discount: number; // Percentage
-  target: 'user' | 'driver';
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  history: PromotionHistory[];
-}
-
 export interface User {
   id: number;
   name: string;
@@ -62,30 +60,34 @@ export interface User {
   avatarUrl: string;
 }
 
-
-// --- Tipos do Aplicativo de Motorista ---
-
+// Driver App specific types
 export type DriverView = 'home' | 'earnings' | 'support';
 
 export interface DriverProfile {
-    id: number;
-    name: string;
-    avatarUrl: string;
+  id: number;
+  name: string;
+  avatarUrl: string;
+  vehicle: {
+    model: string;
+    licensePlate: string;
+  };
+  rating: number;
 }
 
-// Representa o ciclo de vida completo de uma corrida
 export type RideStatus = 'request' | 'en_route_to_pickup' | 'at_pickup' | 'en_route_to_destination' | 'completed' | 'cancelled';
 
 export interface Ride {
   id: string;
+  passengerName: string;
+  passengerAvatarUrl: string;
   pickupLocation: string;
   dropoffLocation: string;
   fare: number;
-  etaMinutes: number; // ETA do motorista até o ponto de embarque
+  etaMinutes: number; // ETA for driver to reach pickup
   status: RideStatus;
-  driverId: number;
+  createdAt: string;
   completedAt?: string;
 }
 
-// O que o motorista vê inicialmente. É um subconjunto da corrida completa.
-export type RideRequest = Omit<Ride, 'status' | 'driverId'>;
+// A Ride during the 'request' status phase has more specific info
+export type RideRequest = Ride & { status: 'request' };
