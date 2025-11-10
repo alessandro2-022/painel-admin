@@ -13,7 +13,7 @@ const MapErrorOverlay: React.FC<MapErrorOverlayProps> = ({ message }) => (
       <h3 className="mt-4 text-lg font-semibold text-red-800 dark:text-red-200">Falha ao Carregar o Mapa</h3>
       <p className="mt-2 text-sm text-red-600 dark:text-red-300">{message}</p>
       <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
-        Certifique-se de que a variável de ambiente <code className="bg-red-100 dark:bg-red-900/50 p-1 rounded font-mono text-xs text-red-700 dark:text-red-300">GOOGLE_MAPS_API_KEY</code> está configurada corretamente.
+        Certifique-se de que a variável de ambiente <code className="bg-red-100 dark:bg-red-900/50 p-1 rounded font-mono text-xs text-red-700 dark:text-red-300">API_KEY</code> está configurada corretamente.
         <br />
         Isso pode ser devido a uma chave de API inválida, informações de faturamento ausentes ou restrições de API incorretas. Verifique o console do navegador para mais detalhes.
       </p>

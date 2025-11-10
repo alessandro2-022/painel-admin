@@ -25,69 +25,68 @@ const RouteOptimization: React.FC = () => {
     const autocompleteRef = useRef<any | null>(null);
 
 
-    // Initialize map and autocomplete when API is loaded
+    // Efeito para inicializar o mapa e aplicar atualizações de tema.
     useEffect(() => {
-        if (isLoaded && !loadError && mapRef.current && !mapInstanceRef.current && (window as any).google?.maps?.Map) {
-            const map = new (window as any).google.maps.Map(mapRef.current, {
-                center: MAP_CENTER,
-                zoom: 12,
-                disableDefaultUI: true,
-                mapId: 'DEMO_MAP_ID',
-                styles: theme === 'dark' ? darkMapStyle : [],
-            });
-            mapInstanceRef.current = map;
-
-            directionsRendererRef.current = new (window as any).google.maps.DirectionsRenderer({
-                map: map,
-                suppressMarkers: true, // We'll use our own markers
-                polylineOptions: {
-                    strokeColor: '#0057b8',
-                    strokeWeight: 5,
-                    strokeOpacity: 0.8,
-                }
-            });
-
-            if (addressInputRef.current && (window as any).google.maps.places) {
-                const autocomplete = new (window as any).google.maps.places.Autocomplete(addressInputRef.current, {
-                    fields: ["formatted_address", "geometry"],
-                    types: ["address"],
+        // Se o script do Google Maps foi carregado com sucesso e o mapa ainda não foi inicializado.
+        if (isLoaded && !loadError && mapRef.current && !mapInstanceRef.current) {
+            if ((window as any).google?.maps?.Map && (window as any).google.maps.places) {
+                const map = new (window as any).google.maps.Map(mapRef.current, {
+                    center: MAP_CENTER,
+                    zoom: 12,
+                    disableDefaultUI: true,
+                    mapId: 'DEMO_MAP_ID',
+                    styles: theme === 'dark' ? darkMapStyle : [],
                 });
-                autocompleteRef.current = autocomplete;
+                mapInstanceRef.current = map;
 
-                autocomplete.addListener("place_changed", () => {
-                    const place = autocomplete.getPlace();
-                    if (place.geometry && place.geometry.location && place.formatted_address) {
-                        const newStop: Stop = {
-                            id: Date.now(),
-                            address: place.formatted_address,
-                            lat: place.geometry.location.lat(),
-                            lng: place.geometry.location.lng(),
-                        };
-                        setStops(prevStops => [...prevStops, newStop]);
-                        if (addressInputRef.current) {
-                            addressInputRef.current.value = "";
-                        }
-                        setOptimizedRoute(null);
-                        if (directionsRendererRef.current) {
-                            directionsRendererRef.current.setDirections({ routes: [] });
-                        }
-                    } else {
-                        setError("Por favor, selecione um local válido da lista.");
+                directionsRendererRef.current = new (window as any).google.maps.DirectionsRenderer({
+                    map: map,
+                    suppressMarkers: true, // We'll use our own markers
+                    polylineOptions: {
+                        strokeColor: '#0057b8',
+                        strokeWeight: 5,
+                        strokeOpacity: 0.8,
                     }
                 });
-            }
-        }
-    }, [isLoaded, loadError]);
 
-    // Apply theme changes to the map after initialization
-    useEffect(() => {
-        if (mapInstanceRef.current) {
+                if (addressInputRef.current) {
+                    const autocomplete = new (window as any).google.maps.places.Autocomplete(addressInputRef.current, {
+                        fields: ["formatted_address", "geometry"],
+                        types: ["address"],
+                    });
+                    autocompleteRef.current = autocomplete;
+
+                    autocomplete.addListener("place_changed", () => {
+                        const place = autocomplete.getPlace();
+                        if (place.geometry && place.geometry.location && place.formatted_address) {
+                            const newStop: Stop = {
+                                id: Date.now(),
+                                address: place.formatted_address,
+                                lat: place.geometry.location.lat(),
+                                lng: place.geometry.location.lng(),
+                            };
+                            setStops(prevStops => [...prevStops, newStop]);
+                            if (addressInputRef.current) {
+                                addressInputRef.current.value = "";
+                            }
+                            setOptimizedRoute(null);
+                            if (directionsRendererRef.current) {
+                                directionsRendererRef.current.setDirections({ routes: [] });
+                            }
+                        } else {
+                            setError("Por favor, selecione um local válido da lista.");
+                        }
+                    });
+                }
+            }
+        } 
+        // Se o mapa já existe, apenas atualiza o estilo do tema.
+        else if (mapInstanceRef.current) {
             mapInstanceRef.current.setOptions({
                 styles: theme === 'dark' ? darkMapStyle : [],
             });
         }
-    }, [theme]);
-
+    }, [isLoaded, loadError, theme]); // A dependência do 'theme' garante que o mapa reaja às mudanças de tema.
 
     const handleRemoveStop = (id: number) => {
         setStops(stops.filter(stop => stop.id !== id));

@@ -1,12 +1,14 @@
 import React from 'react';
-import { DriverProfile, Ride } from '../../types';
+// FIX: Imported RideRequest and updated the rideRequest prop type to match what is passed from DriverApp.
+import { DriverProfile, Ride, RideRequest } from '../../types';
 import GenericMapBackground from '../../components/GenericMapBackground';
 import RideRequestCard from '../components/RideRequestCard';
 
 interface HomeScreenProps {
     profile: DriverProfile | null;
     isOnline: boolean;
-    rideRequest: Ride | null;
+    // FIX: The ride request prop must be of type RideRequest, not the broader Ride type.
+    rideRequest: RideRequest | null;
     onToggleOnline: () => void;
     onRideResponse: (accepted: boolean) => void;
 }

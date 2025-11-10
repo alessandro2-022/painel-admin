@@ -103,29 +103,29 @@ const MapView: React.FC = () => {
       setSelectedDriverId(driverId);
   };
   
-  // Initialize map when API is loaded
+  // Efeito para inicializar o mapa e aplicar atualizações de tema.
   useEffect(() => {
-    if (isLoaded && !loadError && mapRef.current && !mapInstanceRef.current && (window as any).google?.maps?.Map) {
-        const map = new (window as any).google.maps.Map(mapRef.current, {
-            center: MAP_CENTER,
-            zoom: 13,
-            disableDefaultUI: true,
-            mapId: 'DEMO_MAP_ID',
-            styles: theme === 'dark' ? darkMapStyle : [],
-        });
-        mapInstanceRef.current = map;
-    }
-  }, [isLoaded, loadError]);
-
-  // Apply theme changes to the map after initialization
-  useEffect(() => {
-    if (mapInstanceRef.current) {
+    // Se o script do Google Maps foi carregado com sucesso e o mapa ainda não foi inicializado.
+    if (isLoaded && !loadError && mapRef.current && !mapInstanceRef.current) {
+        if ((window as any).google?.maps?.Map) {
+            const map = new (window as any).google.maps.Map(mapRef.current, {
+                center: MAP_CENTER,
+                zoom: 13,
+                disableDefaultUI: true,
+                mapId: 'DEMO_MAP_ID',
+                styles: theme === 'dark' ? darkMapStyle : [],
+            });
+            mapInstanceRef.current = map;
+        }
+    } 
+    // Se o mapa já existe, apenas atualiza o estilo do tema.
+    else if (mapInstanceRef.current) {
         mapInstanceRef.current.setOptions({
             styles: theme === 'dark' ? darkMapStyle : [],
         });
     }
-  }, [theme]);
-  
+  }, [isLoaded, loadError, theme]); // A dependência do 'theme' garante que o mapa reaja às mudanças de tema.
+
   // Gerencia o estado da InfoWindow com base no motorista selecionado
   useEffect(() => {
     if (selectedDriverId === null) {

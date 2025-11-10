@@ -20,10 +20,10 @@ const loadGoogleMapsScript = () => {
 
     loadStatus = 'loading';
 
-    const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+    const GOOGLE_MAPS_API_KEY = process.env.API_KEY; // Corrigido para usar a chave de API padrão
     if (!GOOGLE_MAPS_API_KEY) {
         loadStatus = 'error';
-        loadingError = new Error("A chave da API do Google Maps está ausente. Por favor, defina a variável de ambiente GOOGLE_MAPS_API_KEY.");
+        loadingError = new Error("A chave da API do Google está ausente. Por favor, defina a variável de ambiente API_KEY."); // Mensagem de erro atualizada
         notifyListeners();
         return;
     }
