@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Driver, DriverStatus } from '../types.ts';
 import { getDrivers, getDashboardStats } from '../services/apiService.ts';
@@ -236,6 +237,18 @@ const Dashboard: React.FC = () => {
                 <span key={data.day} className="text-xs font-medium text-slate-500 pt-2">{data.day}</span>
               ))}
           </div>
+        </div>
+      </div>
+
+      {/* NEW: Placeholder for Recent Issues Widget */}
+      <div className="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+        <h2 className="text-xl font-semibold mb-4 text-slate-900">Problemas Recentes (Placeholder)</h2>
+        <div className="flex flex-col items-center justify-center min-h-[100px] text-slate-500">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-orange-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <p>Nenhum problema recente reportado.</p>
+            <p className="text-sm mt-1">Este widget mostrará chamados de suporte ou corridas problemáticas em tempo real.</p>
         </div>
       </div>
 

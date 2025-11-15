@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 
-const InputField: React.FC<{ label: string, id: string, value: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, type?: string, unit?: string }> = 
-  ({ label, id, value, onChange, type = 'number', unit }) => (
+const InputField: React.FC<{ label: string, id: string, value: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, type?: string, unit?: string, placeholder?: string }> = 
+  ({ label, id, value, onChange, type = 'number', unit, placeholder = '0.00' }) => (
   <div>
     <label htmlFor={id} className="block text-sm font-medium text-slate-600">{label}</label>
     <div className="mt-1 relative rounded-md shadow-sm">
@@ -11,7 +12,7 @@ const InputField: React.FC<{ label: string, id: string, value: string, onChange:
         value={value}
         onChange={onChange}
         className="block w-full p-3 border-slate-300 rounded-md focus:ring-[#0057b8] focus:border-[#0057b8] text-slate-900"
-        placeholder="0.00"
+        placeholder={placeholder}
       />
       {unit && <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-500">{unit}</div>}
     </div>
@@ -25,7 +26,8 @@ const Fares: React.FC = () => {
         perKm: '1.50', 
         perMin: '0.30',
         waitingFee: '0.50', // Novo campo
-        waitingTimeLimit: '5' // Novo campo
+        waitingTimeLimit: '5', // Novo campo
+        dynamicMultiplier: '1.2' // NOVO CAMPO: Tarifa dinâmica
     });
     const [driverFares, setDriverFares] = useState({ commission: '25' });
     const [isSaving, setIsSaving] = useState(false);
@@ -56,6 +58,8 @@ const Fares: React.FC = () => {
             {/* Novos campos de tarifa de espera */}
             <InputField label="Tarifa de Espera (por minuto)" id="userWaitingFee" value={userFares.waitingFee} onChange={e => setUserFares({...userFares, waitingFee: e.target.value})} unit="BRL" />
             <InputField label="Tempo Máximo de Espera (antes da tarifa)" id="userWaitingTimeLimit" value={userFares.waitingTimeLimit} onChange={e => setUserFares({...userFares, waitingTimeLimit: e.target.value})} unit="min" />
+            {/* NOVO CAMPO: Tarifa Dinâmica */}
+            <InputField label="Multiplicador Dinâmico Padrão" id="dynamicMultiplier" value={userFares.dynamicMultiplier} onChange={e => setUserFares({...userFares, dynamicMultiplier: e.target.value})} type="text" placeholder="Ex: 1.2 (120%)" />
           </div>
         </div>
 

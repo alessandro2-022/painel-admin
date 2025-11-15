@@ -1,9 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Stop, OptimizedRoute } from '../types.ts';
-import useGoogleMaps from '../hooks/useGoogleMaps.ts';
-// REMOVIDO: import { useTheme } from '../hooks/useTheme.tsx';
-// REMOVIDO: import darkMapStyle from '../styles/darkMapStyle.ts';
-import MapErrorOverlay from './MapErrorOverlay.tsx';
+import { Stop, OptimizedRoute, SharedMapMarker } from '../types.ts';
+import { SharedMap } from './SharedMap.tsx'; // Importa o novo SharedMap
 
 // Center of our map (São Paulo)
 const MAP_CENTER = { lat: -23.555, lng: -46.64 };
@@ -14,211 +11,90 @@ const RouteOptimization: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const { isLoaded, loadError } = useGoogleMaps();
-    // REMOVIDO: const [theme] = useTheme();
-
-    const mapRef = useRef<HTMLDivElement>(null);
-    const mapInstanceRef = useRef<any | null>(null);
-    const stopMarkersRef = useRef<any[]>([]);
-    const directionsRendererRef = useRef<any | null>(null);
     const addressInputRef = useRef<HTMLInputElement>(null);
-    const autocompleteRef = useRef<any | null>(null);
 
-
-    // Efeito para inicializar o mapa e aplicar atualizações de tema.
+    // O useEffect agora apenas reseta o estado quando o componente é montado/desmontado.
+    // Toda a lógica de inicialização do mapa do Google e autocomplete foi removida.
     useEffect(() => {
-        // Se o script do Google Maps foi carregado com sucesso e o mapa ainda não foi inicializado.
-        if (isLoaded && !loadError && mapRef.current && !mapInstanceRef.current) {
-            if ((window as any).google?.maps?.Map && (window as any).google.maps.places) {
-                const map = new (window as any).google.maps.Map(mapRef.current, {
-                    center: MAP_CENTER,
-                    zoom: 12,
-                    disableDefaultUI: true,
-                    mapId: 'DEMO_MAP_ID',
-                    styles: [], // Sempre usar estilo padrão (claro)
-                });
-                mapInstanceRef.current = map;
+        // Limpa o input do endereço ao montar
+        if (addressInputRef.current) {
+            addressInputRef.current.value = "";
+        }
+        setStops([]);
+        setOptimizedRoute(null);
+        setError(null);
+    }, []);
 
-                directionsRendererRef.current = new (window as any).google.maps.DirectionsRenderer({
-                    map: map,
-                    suppressMarkers: true, // We'll use our own markers
-                    polylineOptions: {
-                        strokeColor: '#0057b8',
-                        strokeWeight: 5,
-                        strokeOpacity: 0.8,
-                    }
-                });
-
-                if (addressInputRef.current) {
-                    const autocomplete = new (window as any).google.maps.places.Autocomplete(addressInputRef.current, {
-                        fields: ["formatted_address", "geometry"],
-                        types: ["address"],
-                    });
-                    autocompleteRef.current = autocomplete;
-
-                    autocomplete.addListener("place_changed", () => {
-                        // FIX: Get the place object directly from the autocomplete service.
-                        const place = autocomplete.getPlace();
-                        if (place && place.geometry && place.geometry.location && place.formatted_address) {
-                            const newStop: Stop = {
-                                id: Date.now(),
-                                address: place.formatted_address,
-                                lat: place.geometry.location.lat(),
-                                lng: place.geometry.location.lng(),
-                            };
-                            setStops(prevStops => [...prevStops, newStop]);
-                            if (addressInputRef.current) {
-                                addressInputRef.current.value = "";
-                            }
-                            setOptimizedRoute(null);
-                            if (directionsRendererRef.current) {
-                                directionsRendererRef.current.setDirections({ routes: [] });
-                            }
-                        } else {
-                            setError("Por favor, selecione um local válido da lista.");
-                        }
-                    });
-                }
+    const handleAddStop = () => {
+        const address = addressInputRef.current?.value.trim();
+        if (address) {
+            // Em um cenário real com um "mapa próprio" interativo ou outro serviço,
+            // você faria uma chamada para geocodificar o endereço aqui para obter lat/lng.
+            // Para esta implementação, estamos apenas adicionando um stop simulado.
+            const newStop: Stop = {
+                id: Date.now(),
+                address: address,
+                lat: MAP_CENTER.lat + (Math.random() - 0.5) * 0.05, // Simula uma lat/lng próxima
+                lng: MAP_CENTER.lng + (Math.random() - 0.5) * 0.05, // Simula uma lat/lng próxima
+            };
+            setStops(prevStops => [...prevStops, newStop]);
+            if (addressInputRef.current) {
+                addressInputRef.current.value = "";
             }
-        } 
-        // Se o mapa já existe, não há necessidade de atualizar estilos de tema, pois o dark mode foi removido.
-        // REMOVIDO: else if (mapInstanceRef.current) {
-        // REMOVIDO:     mapInstanceRef.current.setOptions({
-        // REMOVIDO:         styles: theme === 'dark' ? darkMapStyle : [],
-        // REMOVIDO:     });
-        // REMOVIDO: }
-    }, [isLoaded, loadError]); // Removida a dependência do 'theme'.
+            setOptimizedRoute(null);
+            setError(null);
+        } else {
+            setError("Por favor, digite um endereço para adicionar uma parada.");
+        }
+    };
 
     const handleRemoveStop = (id: number) => {
         setStops(stops.filter(stop => stop.id !== id));
         setOptimizedRoute(null);
-        if (directionsRendererRef.current) {
-            directionsRendererRef.current.setDirections({routes: []});
-        }
     };
 
     const handleClearAll = () => {
         setStops([]);
         setOptimizedRoute(null);
-        if (directionsRendererRef.current) {
-            directionsRendererRef.current.setDirections({routes: []});
-        }
+        setError(null);
     }
 
-    // Update markers on the map when stops change
-    useEffect(() => {
-        if (!isLoaded || loadError || !mapInstanceRef.current || !(window as any).google?.maps) return;
-        
-        stopMarkersRef.current.forEach(marker => marker.map = null);
-        stopMarkersRef.current = [];
-
-        if (stops.length === 0) return;
-
-        const bounds = new (window as any).google.maps.LatLngBounds();
-        
-        stops.forEach((stop, index) => {
-            const position = { lat: stop.lat, lng: stop.lng };
-            const label = document.createElement('div');
-            label.className = `w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-bold border-2 border-white shadow-md`;
-            label.textContent = `${index + 1}`;
-
-            const marker = new (window as any).google.maps.marker.AdvancedMarkerElement({
-                position,
-                map: mapInstanceRef.current,
-                content: label,
-                title: stop.address
-            });
-            stopMarkersRef.current.push(marker);
-            bounds.extend(position);
-        });
-
-        if (!optimizedRoute) {
-             if (stops.length > 1) {
-                mapInstanceRef.current.fitBounds(bounds, 50); // 50px padding
-            } else {
-                mapInstanceRef.current.setCenter(bounds.getCenter());
-                mapInstanceRef.current.setZoom(14);
-            }
-        }
-    }, [stops, isLoaded, loadError, optimizedRoute]);
-
+    // A função de gerar rota agora é um placeholder
     const handleGenerateRoute = () => {
-        if (!isLoaded || loadError) {
-            setError("O serviço de mapas não está disponível. Verifique sua chave de API.");
-            return;
-        }
-
-        if (stops.length < 2) {
-            setError('Adicione pelo menos duas paradas para gerar uma rota.');
-            return;
-        }
-
-        if (!(window as any).google?.maps?.DirectionsService) {
-            setError("O serviço de direções do mapa não está disponível. A API pode não ter sido carregada corretamente.");
-            return;
-        }
-
-        setError(null);
-        setIsLoading(true);
-        setOptimizedRoute(null);
-        
-        const directionsService = new (window as any).google.maps.DirectionsService();
-
-        const origin = { lat: stops[0].lat, lng: stops[0].lng };
-        const destination = { lat: stops[stops.length - 1].lat, lng: stops[stops.length - 1].lng };
-        const waypoints = stops.slice(1, -1).map(stop => ({
-            location: { lat: stop.lat, lng: stop.lng },
-            stopover: true,
-        }));
-        
-        directionsService.route({
-            origin: origin,
-            destination: destination,
-            waypoints: waypoints,
-            optimizeWaypoints: true,
-            travelMode: 'DRIVING',
-        }, (result: any, status: string) => {
-            setIsLoading(false);
-            if (status === 'OK' && result) {
-                directionsRendererRef.current?.setDirections(result);
-
-                const route = result.routes[0];
-                let totalDistance = 0;
-                let totalDuration = 0;
-                const reorderedStops: Stop[] = [];
-
-                const originalWaypoints = stops.slice(1, -1);
-                reorderedStops.push(stops[0]); // Add origin
-                route.waypoint_order.forEach((i: number) => reorderedStops.push(originalWaypoints[i]));
-                reorderedStops.push(stops[stops.length - 1]); // Add destination
-
-                for (const leg of route.legs) {
-                    totalDistance += leg.distance?.value ?? 0;
-                    totalDuration += leg.duration?.value ?? 0;
-                }
-
-                setOptimizedRoute({
-                    stops: reorderedStops,
-                    totalDistance: parseFloat((totalDistance / 1000).toFixed(2)), // meters to km
-                    totalDuration: Math.round(totalDuration / 60), // seconds to minutes
-                });
-            } else {
-                setError(`Falha ao gerar rota: ${status}`);
-            }
-        });
+        setError('A funcionalidade de otimização de rota e cálculo de distância real requer um serviço de mapeamento geoespacial (ex: Google Maps Directions API) que não está atualmente integrado. O mapa exibido é apenas para fins visuais.');
+        setOptimizedRoute(null); // Limpa qualquer rota previamente otimizada
     };
+
+    const mapMarkers: SharedMapMarker[] = stops.map(stop => ({
+        id: stop.id,
+        lat: stop.lat,
+        lng: stop.lng,
+        // No avatar/status for stops, so these props are omitted
+    }));
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-full">
             <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-md flex flex-col border border-slate-200">
-                <h2 className="text-xl font-semibold mb-4 text-slate-900">Planeje sua Rota</h2>
+                <h2 className="text-xl font-semibold mb-4 text-slate-900">Planeje sua Rota (Funcionalidade Limitada)</h2>
                 
-                <input
-                    ref={addressInputRef}
-                    type="text"
-                    className="w-full p-3 border-slate-300 rounded-md focus:ring-[#0057b8] focus:border-[#0057b8] text-slate-900"
-                    placeholder="Digite um endereço para adicionar uma parada"
-                />
+                <div className="flex space-x-2">
+                    <input
+                        ref={addressInputRef}
+                        type="text"
+                        className="flex-1 p-3 border-slate-300 rounded-md focus:ring-[#0057b8] focus:border-[#0057b8] text-slate-900"
+                        placeholder="Digite um endereço para adicionar uma parada"
+                        disabled={true} // Desabilitar o input, pois o autocomplete foi removido
+                    />
+                    <button
+                        onClick={handleAddStop}
+                        disabled={true} // Desabilitar, pois o input está desativado
+                        className="px-4 py-2 bg-slate-400 text-white font-semibold rounded-lg shadow-sm cursor-not-allowed"
+                    >
+                        Adicionar
+                    </button>
+                </div>
+                <p className="text-sm text-slate-500 mt-2">Adicionar paradas está desativado. Esta funcionalidade requer um serviço de geocodificação.</p>
+
 
                 <div className="flex-1 mt-4 overflow-y-auto -mr-3 pr-3">
                     <ul className="space-y-2">
@@ -244,10 +120,10 @@ const RouteOptimization: React.FC = () => {
                 <div className="mt-6 pt-6 border-t border-slate-200 space-y-2">
                      <button
                         onClick={handleGenerateRoute}
-                        disabled={isLoading || stops.length < 2}
-                        className="w-full px-6 py-3 bg-[#0057b8] text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-slate-400 disabled:cursor-not-allowed transition-colors"
+                        disabled={true} // Sempre desabilitado, pois a funcionalidade real foi removida
+                        className="w-full px-6 py-3 bg-slate-400 text-white font-semibold rounded-lg shadow-md cursor-not-allowed"
                     >
-                        {isLoading ? 'Gerando...' : 'Gerar Rota Otimizada'}
+                        Gerar Rota Otimizada (Desativado)
                     </button>
                     <button
                         onClick={handleClearAll}
@@ -285,19 +161,17 @@ const RouteOptimization: React.FC = () => {
                         </div>
                     )}
                     
-                    <div className="flex-1 w-full bg-slate-100 rounded-lg relative overflow-hidden min-h-[300px]">
-                        <div ref={mapRef} className="w-full h-full" />
-                        {!isLoaded && !loadError && <div className="absolute inset-0 flex items-center justify-center bg-white"><p className="text-slate-900">Carregando Mapa...</p></div>}
-                        {loadError && <MapErrorOverlay message={loadError.message} />}
-                        {isLoading && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/50 backdrop-blur-sm z-10">
-                                <svg className="animate-spin h-8 w-8 text-[#0057b8]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                <p className="mt-2 text-slate-700 font-semibold">Otimizando Rota...</p>
-                            </div>
-                        )}
+                    <div className="flex-1 w-full bg-slate-100 rounded-lg relative overflow-hidden min-h-[300px] flex items-center justify-center">
+                        <SharedMap
+                            center={MAP_CENTER} // Default center, SharedMap will manage view state
+                            markers={mapMarkers}
+                            // routeGeoJson={...} // No real route data to pass currently
+                        />
+                         <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 bg-white/70 backdrop-blur-sm">
+                            <h3 className="text-lg font-semibold text-slate-800">Visualização de Mapa Genérico</h3>
+                            <p className="mt-2 text-slate-600">Este mapa é apenas ilustrativo e não interage com dados geoespaciais reais.</p>
+                            <p className="mt-2 text-sm text-slate-500">A funcionalidade completa de otimização de rotas foi desativada.</p>
+                        </div>
                     </div>
                 </div>
             </div>

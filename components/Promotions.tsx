@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Promotion } from '../types.ts';
 import EditIcon from './icons/EditIcon.tsx';
@@ -21,11 +22,35 @@ const Promotions: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const PROMOS_PER_PAGE = 10;
 
+    // Estados para validação
+    const [codeError, setCodeError] = useState<string | null>(null);
+    const [discountError, setDiscountError] = useState<string | null>(null);
+
 
     const emptyForm: FormData = { code: '', discount: 0, target: 'user' };
     const [formData, setFormData] = useState<FormData>(emptyForm);
     
     const formatDate = (dateString: string) => new Date(dateString).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+
+    const validateCode = useCallback((code: string): string | null => {
+        if (!code.trim()) {
+            return 'O código promocional é obrigatório.';
+        }
+        if (code.trim().length < 3) {
+            return 'O código deve ter pelo menos 3 caracteres.';
+        }
+        return null;
+    }, []);
+
+    const validateDiscount = useCallback((discount: number): string | null => {
+        if (discount === 0 || isNaN(discount)) {
+            return 'O desconto é obrigatório e deve ser um número.';
+        }
+        if (discount < 1 || discount > 100) {
+            return 'O desconto deve ser entre 1 e 100%.';
+        }
+        return null;
+    }, []);
 
     const applyCurrentFilter = useCallback((sourcePromotions: Promotion[], currentFilter: { startDate: string; endDate: string }) => {
         let filtered = [...sourcePromotions];
@@ -73,15 +98,32 @@ const Promotions: React.FC = () => {
                 discount: editingPromo.discount,
                 target: editingPromo.target,
             });
+            // Clear errors when starting to edit
+            setCodeError(null);
+            setDiscountError(null);
             formRef.current?.scrollIntoView({ behavior: 'smooth' });
         } else {
             setFormData(emptyForm);
+            // Clear errors when creating a new promo or after saving
+            setCodeError(null);
+            setDiscountError(null);
         }
     }, [editingPromo]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: name === 'discount' ? parseInt(value, 10) || 0 : value.toUpperCase() }));
+        
+        let newValue: string | number = value;
+
+        if (name === 'code') {
+            newValue = value.toUpperCase();
+            setCodeError(validateCode(newValue as string));
+        } else if (name === 'discount') {
+            newValue = parseInt(value, 10) || 0;
+            setDiscountError(validateDiscount(newValue as number));
+        }
+        
+        setFormData(prev => ({ ...prev, [name]: newValue }));
     };
 
     const handleTargetChange = (target: 'user' | 'driver') => {
@@ -90,7 +132,17 @@ const Promotions: React.FC = () => {
     
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.code || formData.discount <= 0) return;
+
+        // Final validation check before submission
+        const currentCodeError = validateCode(formData.code);
+        const currentDiscountError = validateDiscount(formData.discount);
+        
+        setCodeError(currentCodeError);
+        setDiscountError(currentDiscountError);
+
+        if (currentCodeError || currentDiscountError) {
+            return; // Don't submit if there are errors
+        }
         
         setIsSaving(true);
         try {
@@ -148,13 +200,18 @@ const Promotions: React.FC = () => {
         currentPage * PROMOS_PER_PAGE
     );
 
+    // FIX: Add `handlePrevPage` function to decrement the current page, ensuring it doesn't go below 1.
     const handlePrevPage = () => {
-        setCurrentPage(prev => Math.max(prev - 1, 1));
+        setCurrentPage(prev => Math.max(1, prev - 1));
     };
 
+    // FIX: Add `handleNextPage` function to increment the current page, ensuring it doesn't exceed the total pages.
     const handleNextPage = () => {
-        setCurrentPage(prev => Math.min(prev + 1, totalPages));
+        setCurrentPage(prev => Math.min(totalPages, prev + 1));
     };
+
+    // Determina se o botão de submit deve estar desabilitado
+    const isSubmitDisabled = isSaving || !!codeError || !!discountError || !formData.code.trim() || formData.discount < 1 || formData.discount > 100;
 
     return (
         <div className="max-w-6xl mx-auto space-y-8">
@@ -271,10 +328,12 @@ const Promotions: React.FC = () => {
                             name="code"
                             value={formData.code}
                             onChange={handleInputChange}
-                            className="mt-1 block w-full p-3 border-slate-300 rounded-md shadow-sm focus:ring-[#0057b8] focus:border-[#0057b8] text-slate-900 font-mono"
+                            onBlur={(e) => setCodeError(validateCode(e.target.value))} // Validate on blur too
+                            className={`mt-1 block w-full p-3 border-slate-300 rounded-md shadow-sm focus:ring-[#0057b8] focus:border-[#0057b8] text-slate-900 font-mono ${codeError ? 'border-red-500' : ''}`}
                             placeholder="ex: GOLYVERAO24"
                             required
                         />
+                        {codeError && <p className="text-red-500 text-sm mt-1">{codeError}</p>}
                     </div>
                     <div>
                         <label htmlFor="discount" className="block text-sm font-medium text-slate-600">Valor do Desconto</label>
@@ -283,9 +342,10 @@ const Promotions: React.FC = () => {
                                 type="number"
                                 id="discount"
                                 name="discount"
-                                value={formData.discount === 0 ? '' : formData.discount}
+                                value={formData.discount === 0 && !editingPromo ? '' : formData.discount} // Display empty for new promo if 0
                                 onChange={handleInputChange}
-                                className="block w-full p-3 border-slate-300 rounded-md focus:ring-[#0057b8] focus:border-[#0057b8] text-slate-900"
+                                onBlur={(e) => setDiscountError(validateDiscount(parseInt(e.target.value, 10) || 0))} // Validate on blur too
+                                className={`block w-full p-3 border-slate-300 rounded-md focus:ring-[#0057b8] focus:border-[#0057b8] text-slate-900 ${discountError ? 'border-red-500' : ''}`}
                                 placeholder="ex: 10"
                                 required
                                 min="1"
@@ -293,6 +353,7 @@ const Promotions: React.FC = () => {
                             />
                             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-500">%</div>
                         </div>
+                        {discountError && <p className="text-red-500 text-sm mt-1">{discountError}</p>}
                     </div>
                     <div>
                         <span className="block text-sm font-medium text-slate-600">Público-Alvo</span>
@@ -316,7 +377,7 @@ const Promotions: React.FC = () => {
                          )}
                         <button
                             type="submit"
-                            disabled={isSaving}
+                            disabled={isSubmitDisabled}
                             className="px-6 py-3 bg-[#0057b8] text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-slate-400 disabled:cursor-not-allowed transition-colors"
                         >
                             {isSaving ? 'Salvando...' : (editingPromo ? 'Salvar Alterações' : 'Criar Promoção')}

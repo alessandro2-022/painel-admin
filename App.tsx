@@ -1,3 +1,5 @@
+
+
 import React, { useState, useMemo } from 'react';
 import Sidebar from './components/Sidebar.tsx';
 import Header from './components/Header.tsx';
@@ -6,11 +8,14 @@ import MapView from './components/MapView.tsx';
 import Fares from './components/Fares.tsx';
 import Promotions from './components/Promotions.tsx';
 import SupportChat from './components/SupportChat.tsx';
-import LiveAssistant from './components/LiveAssistant.tsx';
 import RouteOptimization from './components/RouteOptimization.tsx';
 import DriversManagement from './components/DriversManagement.tsx';
 import UsersManagement from './components/UsersManagement.tsx';
 import ConnectionStatusBanner from './components/ConnectionStatusBanner.tsx';
+import RegionManagement from './components/RegionManagement.tsx'; // New
+import FinancialReports from './components/FinancialReports.tsx'; // New
+import RidesManagement from './components/RidesManagement.tsx'; // New
+import CustomerSupport from './components/CustomerSupport.tsx'; // New
 import { View } from './types.ts';
 
 const pageTitles: { [key in View]: string } = {
@@ -22,7 +27,10 @@ const pageTitles: { [key in View]: string } = {
   drivers: 'Gerenciar Motoristas',
   users: 'Gerenciar Usuários',
   support: 'Chat de Suporte',
-  'live-assistant': 'Assistente ao Vivo',
+  'region-management': 'Gestão de Regiões', // New
+  'financial-reports': 'Relatórios Financeiros', // New
+  'rides-management': 'Gerenciar Corridas', // New
+  'customer-support': 'Atendimento ao Cliente', // New
 };
 
 const App: React.FC = () => {
@@ -39,7 +47,10 @@ const App: React.FC = () => {
             case 'drivers': return <DriversManagement />;
             case 'users': return <UsersManagement />;
             case 'support': return <SupportChat />;
-            case 'live-assistant': return <LiveAssistant />;
+            case 'region-management': return <RegionManagement />; // New
+            case 'financial-reports': return <FinancialReports />; // New
+            case 'rides-management': return <RidesManagement />; // New
+            case 'customer-support': return <CustomerSupport />; // New
             default: return <Dashboard />;
         }
     }, [currentView]);

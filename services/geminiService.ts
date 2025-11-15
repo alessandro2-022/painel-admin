@@ -1,40 +1,37 @@
 import { GoogleGenAI, Chat, GenerateContentResponse, LatLng, Modality } from "@google/genai";
 
-let ai: GoogleGenAI | null = null;
-let chat: Chat | null = null;
+let chatInstance: Chat | null = null; // Renamed to avoid confusion with the fresh AI instance below
 
-const getAiInstance = (): GoogleGenAI => {
-    if (ai) {
-        return ai;
-    }
+const createFreshAiInstance = (): GoogleGenAI => {
     if (!process.env.API_KEY) {
         throw new Error("API_KEY environment variable for Gemini not set. Please set it to use Gemini features.");
     }
-    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    return ai;
+    return new GoogleGenAI({ apiKey: process.env.API_KEY });
 };
 
 const getChatInstance = (): Chat => {
-    if (!chat) {
-        const genAI = getAiInstance();
-        chat = genAI.chats.create({
+    // If we need chat history, the chat object itself should be a singleton per conversation.
+    // The underlying GoogleGenAI instance it uses can be fresh.
+    if (!chatInstance) {
+        const genAI = createFreshAiInstance(); // Create a fresh AI instance for the chat
+        chatInstance = genAI.chats.create({
             model: 'gemini-2.5-flash',
             config: {
                 systemInstruction: 'Você é um assistente prestativo para a plataforma de caronas Goly. Seja conciso e profissional.',
             },
         });
     }
-    return chat;
+    return chatInstance;
 };
 
 export const getChatbotResponse = async (message: string): Promise<GenerateContentResponse> => {
-    const chatInstance = getChatInstance();
-    const result = await chatInstance.sendMessage({ message });
+    const chat = getChatInstance(); // Use the chat singleton
+    const result = await chat.sendMessage({ message });
     return result;
 };
 
 export const getGroundedResponse = async (message: string, location: { latitude: number; longitude: number }): Promise<GenerateContentResponse> => {
-    const genAI = getAiInstance();
+    const genAI = createFreshAiInstance(); // Always create a fresh AI instance for non-chat calls
     return await genAI.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: message,
@@ -51,7 +48,7 @@ export const getGroundedResponse = async (message: string, location: { latitude:
 
 export const getTextToSpeech = async (text: string): Promise<string | null> => {
     try {
-        const genAI = getAiInstance();
+        const genAI = createFreshAiInstance(); // Always create a fresh AI instance
         const response = await genAI.models.generateContent({
             model: 'gemini-2.5-flash-preview-tts',
             contents: [{ parts: [{ text: text }] }],

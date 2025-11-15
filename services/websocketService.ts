@@ -38,10 +38,19 @@ class WebSocketService {
         };
 
         this.ws.onerror = (event) => {
-            // Log do objeto ErrorEvent completo para mais detalhes
-            console.error('WebSocket error:', event);
+            console.error('WebSocket error event details:', event); // Log the full event for debugging
+
+            let errorMessage = 'Um erro desconhecido ocorreu na conexão WebSocket.';
+            // Check if it's an ErrorEvent and has a message
+            if (event instanceof ErrorEvent && event.message) {
+                errorMessage = `Erro WebSocket: ${event.message}`;
+            } else {
+                // For other Event types, provide general info
+                errorMessage = `Erro de conexão WebSocket (Tipo: ${event.type}).`;
+            }
+
             this.emitEvent('error', event);
-            // O onclose será chamado em seguida, então tratamos a reconexão lá.
+            connectionStore.setState('error', errorMessage + " Tentando reconectar...");
         };
 
         this.ws.onclose = (event) => {

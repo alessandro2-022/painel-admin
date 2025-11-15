@@ -1,34 +1,40 @@
-import React, { useState, useEffect } from 'react';
+
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { Driver } from '../types.ts';
 import { getDrivers } from '../services/apiService.ts';
 import TrashIcon from './icons/TrashIcon.tsx';
 import EditIcon from './icons/EditIcon.tsx';
 import UserPlusIcon from './icons/UserPlusIcon.tsx';
 import ConfirmationModal from './ConfirmationModal.tsx';
+import DriverFormModal from './DriverFormModal.tsx'; // Import the new modal
 
 const DriversManagement: React.FC = () => {
     const [drivers, setDrivers] = useState<Driver[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [driverToDelete, setDriverToDelete] = useState<Driver | null>(null);
+    const [driverToEdit, setDriverToEdit] = useState<Driver | null>(null); // State for editing driver
+    const [isDriverFormModalOpen, setIsDriverFormModalOpen] = useState(false); // State for modal visibility
     const [searchQuery, setSearchQuery] = useState('');
 
-    useEffect(() => {
-        const fetchDrivers = async () => {
-            setIsLoading(true);
-            setError(null);
-            try {
-                const driverData = await getDrivers();
-                setDrivers(driverData);
-            } catch (error) {
-                console.error("Failed to fetch drivers", error);
-                setError("Não foi possível carregar os motoristas.");
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchDrivers();
+    const fetchDrivers = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const driverData = await getDrivers();
+            setDrivers(driverData);
+        } catch (error) {
+            console.error("Failed to fetch drivers", error);
+            setError("Não foi possível carregar os motoristas.");
+        } finally {
+            setIsLoading(false);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchDrivers();
+    }, [fetchDrivers]);
     
     const handleDeleteClick = (driver: Driver) => {
         setDriverToDelete(driver);
@@ -38,8 +44,26 @@ const DriversManagement: React.FC = () => {
         if (!driverToDelete) return;
         // In a real app, call an API to delete the driver
         console.log(`Deleting driver ${driverToDelete.name}`);
-        setDrivers(drivers.filter(d => d.id !== driverToDelete.id));
+        setDrivers(drivers.filter(d => d.id !== driverToDelete.id)); // Optimistic update
         setDriverToDelete(null);
+    };
+
+    const handleNewDriverClick = () => {
+        setDriverToEdit(null); // Ensure no driver is selected for editing
+        setIsDriverFormModalOpen(true);
+    };
+
+    const handleEditDriverClick = (driver: Driver) => {
+        setDriverToEdit(driver);
+        setIsDriverFormModalOpen(true);
+    };
+
+    const handleDriverFormClose = () => {
+        setIsDriverFormModalOpen(false);
+    };
+
+    const handleDriverSaveSuccess = () => {
+        fetchDrivers(); // Re-fetch drivers after a successful save/update
     };
 
     const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('pt-BR');
@@ -58,7 +82,11 @@ const DriversManagement: React.FC = () => {
       };
 
       const filteredDrivers = drivers.filter(driver =>
-        driver.name.toLowerCase().includes(searchQuery.toLowerCase())
+        driver.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (driver.email && driver.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (driver.licensePlate && driver.licensePlate.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (driver.phone && driver.phone.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (driver.vehicleModel && driver.vehicleModel.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
     return (
@@ -66,7 +94,10 @@ const DriversManagement: React.FC = () => {
             <div className="bg-white p-6 rounded-xl shadow-md border border-slate-200">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-semibold text-slate-900">Gerenciar Motoristas</h2>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-[#0057b8] text-white font-semibold rounded-lg shadow-sm hover:bg-blue-700 transition-colors">
+                    <button 
+                        onClick={handleNewDriverClick}
+                        className="flex items-center gap-2 px-4 py-2 bg-[#0057b8] text-white font-semibold rounded-lg shadow-sm hover:bg-blue-700 transition-colors"
+                    >
                         <UserPlusIcon className="h-5 w-5" />
                         <span>Novo Motorista</span>
                     </button>
@@ -81,10 +112,11 @@ const DriversManagement: React.FC = () => {
                         </span>
                         <input
                             type="text"
-                            placeholder="Procurar por nome..."
+                            placeholder="Procurar por nome, e-mail, placa, telefone ou veículo..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full p-3 pl-10 border-slate-300 rounded-lg focus:ring-[#0057b8] focus:border-[#0057b8] text-slate-900"
+                            aria-label="Procurar motoristas"
                         />
                     </div>
                 </div>
@@ -93,18 +125,21 @@ const DriversManagement: React.FC = () => {
                     <table className="w-full text-left">
                         <thead>
                             <tr className="border-b border-slate-200">
-                                <th className="p-3 text-slate-700">Nome</th>
-                                <th className="p-3 text-slate-700">Status</th>
-                                <th className="p-3 text-slate-700">Registrado em</th>
-                                <th className="p-3 text-slate-700">Localização</th>
-                                <th className="p-3 text-right text-slate-700">Ações</th>
+                                <th className="p-3 text-sm font-semibold text-slate-700">Nome</th>
+                                <th className="p-3 text-sm font-semibold text-slate-700">Email</th>
+                                <th className="p-3 text-sm font-semibold text-slate-700">Telefone</th>
+                                <th className="p-3 text-sm font-semibold text-slate-700">Veículo</th>
+                                <th className="p-3 text-sm font-semibold text-slate-700">Placa</th>
+                                <th className="p-3 text-sm font-semibold text-slate-700">Status</th>
+                                <th className="p-3 text-sm font-semibold text-slate-700">Registrado em</th>
+                                <th className="p-3 text-right text-sm font-semibold text-slate-700">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
                             {isLoading ? (
-                                <tr><td colSpan={5} className="text-center p-4 text-slate-500">Carregando...</td></tr>
+                                <tr><td colSpan={8} className="text-center p-4 text-slate-500">Carregando...</td></tr>
                             ) : error ? (
-                                <tr><td colSpan={5} className="text-center p-4 text-red-500">{error}</td></tr>
+                                <tr><td colSpan={8} className="text-center p-4 text-red-500">{error}</td></tr>
                             ) : filteredDrivers.length > 0 ? (
                                 filteredDrivers.map(driver => (
                                     <tr key={driver.id} className="border-b border-slate-200 hover:bg-slate-50">
@@ -112,17 +147,20 @@ const DriversManagement: React.FC = () => {
                                             <img src={driver.avatarUrl} alt={driver.name} className="w-8 h-8 rounded-full" />
                                             <span className="font-medium text-slate-900">{driver.name}</span>
                                         </td>
+                                        <td className="p-3 text-sm text-slate-700">{driver.email}</td>
+                                        <td className="p-3 text-sm text-slate-700">{driver.phone || 'N/A'}</td>
+                                        <td className="p-3 text-sm text-slate-700">{driver.vehicleModel || 'N/A'}</td>
+                                        <td className="p-3 text-sm text-slate-700">{driver.licensePlate || 'N/A'}</td>
                                         <td className="p-3"><DriverStatusBadge status={driver.status} /></td>
                                         <td className="p-3 text-sm text-slate-700">{formatDate(driver.registeredAt)}</td>
-                                        <td className="p-3 text-sm text-slate-700">{driver.status !== 'offline' ? `${driver.position.lat.toFixed(4)}, ${driver.position.lng.toFixed(4)}` : 'N/A'}</td>
                                         <td className="p-3 text-right space-x-2">
-                                            <button className="p-2 text-slate-500 hover:text-[#0057b8] rounded-full hover:bg-slate-200"><EditIcon /></button>
-                                            <button onClick={() => handleDeleteClick(driver)} className="p-2 text-slate-500 hover:text-red-500 rounded-full hover:bg-slate-200"><TrashIcon /></button>
+                                            <button onClick={() => handleEditDriverClick(driver)} className="p-2 text-slate-500 hover:text-[#0057b8] rounded-full hover:bg-slate-200" aria-label={`Editar ${driver.name}`}><EditIcon /></button>
+                                            <button onClick={() => handleDeleteClick(driver)} className="p-2 text-slate-500 hover:text-red-500 rounded-full hover:bg-slate-200" aria-label={`Excluir ${driver.name}`}><TrashIcon /></button>
                                         </td>
                                     </tr>
                                 ))
                             ) : (
-                                <tr><td colSpan={5} className="text-center p-4 text-slate-500">Nenhum motorista encontrado.</td></tr>
+                                <tr><td colSpan={8} className="text-center p-4 text-slate-500">Nenhum motorista encontrado.</td></tr>
                             )}
                         </tbody>
                     </table>
@@ -135,6 +173,12 @@ const DriversManagement: React.FC = () => {
                     message={`Tem certeza de que deseja remover o motorista "${driverToDelete?.name}"? Esta ação não pode ser desfeita.`}
                     confirmText="Excluir"
                     isDestructive
+                />
+                <DriverFormModal
+                    isOpen={isDriverFormModalOpen}
+                    onClose={handleDriverFormClose}
+                    onSaveSuccess={handleDriverSaveSuccess}
+                    editingDriver={driverToEdit}
                 />
             </div>
         </div>

@@ -1,3 +1,5 @@
+
+
 import React, { useState } from 'react';
 import GolyLogo from './icons/GolyLogo.tsx';
 import ChartIcon from './icons/ChartIcon.tsx';
@@ -6,12 +8,14 @@ import RouteIcon from './icons/RouteIcon.tsx';
 import SettingsIcon from './icons/SettingsIcon.tsx';
 import PromotionIcon from './icons/PromotionIcon.tsx';
 import ChatIcon from './icons/ChatIcon.tsx';
-import LiveIcon from './icons/LiveIcon.tsx';
 import UsersIcon from './icons/UsersIcon.tsx';
 import CarIcon from './icons/CarIcon.tsx';
-// REMOVIDO: import ThemeToggle from './ThemeToggle.tsx';
 import ChevronLeftIcon from './icons/ChevronLeftIcon.tsx';
 import ChevronRightIcon from './icons/ChevronRightIcon.tsx';
+import WalletIcon from './icons/WalletIcon.tsx'; // New Icon
+import GlobeIcon from './icons/GlobeIcon.tsx'; // New Icon
+import ClipboardListIcon from './icons/ClipboardListIcon.tsx'; // New Icon
+import HeadsetIcon from './icons/HeadsetIcon.tsx'; // New Icon
 import { View } from '../types.ts';
 
 interface SidebarProps {
@@ -51,13 +55,16 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView }) => {
   const navItems = [
     { view: 'dashboard' as View, label: 'Dashboard' },
     { view: 'map' as View, label: 'Mapa' },
+    { view: 'rides-management' as View, label: 'Corridas' }, // New
     { view: 'routes' as View, label: 'Otimizar Rota' },
     { view: 'drivers' as View, label: 'Motoristas' },
     { view: 'users' as View, label: 'Usuários' },
     { view: 'promotions' as View, label: 'Promoções' },
     { view: 'fares' as View, label: 'Tarifas' },
-    { view: 'support' as View, label: 'Suporte' },
-    { view: 'live-assistant' as View, label: 'Assistente' },
+    { view: 'region-management' as View, label: 'Regiões' }, // New
+    { view: 'financial-reports' as View, label: 'Financeiro' }, // New
+    { view: 'customer-support' as View, label: 'Atendimento' }, // New
+    { view: 'support' as View, label: 'Suporte IA' },
   ];
   
   // A mapping of view to an icon component
@@ -70,7 +77,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView }) => {
       promotions: PromotionIcon,
       fares: SettingsIcon,
       support: ChatIcon,
-      'live-assistant': LiveIcon,
+      'region-management': GlobeIcon, // New
+      'financial-reports': WalletIcon, // New
+      'rides-management': ClipboardListIcon, // New
+      'customer-support': HeadsetIcon, // New
   };
 
 
